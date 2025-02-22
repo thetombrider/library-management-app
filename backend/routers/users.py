@@ -21,4 +21,4 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(ge
 @router.delete("/{user_id}", response_model=schemas.UserDelete)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     deleted_user = crud.user.delete_user(db=db, user_id=user_id)
-    return schemas.UserDelete(message="User deleted successfully", user=deleted_user["user"])
+    return deleted_user

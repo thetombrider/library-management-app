@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from backend.models.book import Book
 from backend.models.loan import Loan
-from backend.schemas.book import BookCreate, BookUpdate
+from backend.schemas.book import BookCreate, BookUpdate, BookDelete
 from fastapi import HTTPException, status
 
 def get_books(db: Session, skip: int = 0, limit: int = 10):
@@ -36,4 +36,4 @@ def delete_book(db: Session, book_id: int):
     
     db.delete(db_book)
     db.commit()
-    return {"message": "Book deleted successfully", "book": db_book}
+    return BookDelete(message="Book deleted successfully", book=db_book)

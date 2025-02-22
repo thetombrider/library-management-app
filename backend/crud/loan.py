@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from backend.models.loan import Loan
 from backend.models.book import Book
 from backend.models.user import User
-from backend.schemas.loan import LoanCreate, LoanUpdate
+from backend.schemas.loan import LoanCreate, LoanUpdate, LoanDelete
 from fastapi import HTTPException, status
 from datetime import datetime
 
@@ -47,4 +47,4 @@ def delete_loan(db: Session, loan_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
     db.delete(db_loan)
     db.commit()
-    return {"message": "Loan deleted successfully", "loan": db_loan}
+    return LoanDelete(message="Loan deleted successfully", loan=db_loan)
