@@ -18,6 +18,7 @@ def create_loan(loan: schemas.LoanCreate, db: Session = Depends(get_db)):
 def update_loan(loan_id: int, loan: schemas.LoanUpdate, db: Session = Depends(get_db)):
     return crud.loan.update_loan(db=db, loan_id=loan_id, loan=loan)
 
-@router.delete("/{loan_id}", response_model=schemas.Loan)
+@router.delete("/{loan_id}", response_model=schemas.LoanDelete)
 def delete_loan(loan_id: int, db: Session = Depends(get_db)):
-    return crud.loan.delete_loan(db=db, loan_id=loan_id)
+    deleted_loan = crud.loan.delete_loan(db=db, loan_id=loan_id)
+    return schemas.LoanDelete(message="Loan deleted successfully", loan=deleted_loan["loan"])

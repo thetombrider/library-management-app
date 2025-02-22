@@ -18,7 +18,7 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    for key, value in user.dict().items():
+    for key, value in user.model_dump().items():
         setattr(db_user, key, value)
     db.commit()
     db.refresh(db_user)
@@ -34,4 +34,4 @@ def delete_user(db: Session, user_id: int):
     
     db.delete(db_user)
     db.commit()
-    return db_user
+    return {"message": "User deleted successfully", "user": db_user}

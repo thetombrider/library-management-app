@@ -16,3 +16,7 @@ class Book(BookBase):
 
     class Config:
         from_attributes = True
+
+class BookDelete(BaseModel):
+    message: str
+    book: Book

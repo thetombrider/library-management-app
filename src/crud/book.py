@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from src.models.book import Book
+from src.models.loan import Loan
 from src.schemas.book import BookCreate, BookUpdate
 from fastapi import HTTPException, status
 
@@ -27,6 +28,12 @@ def delete_book(db: Session, book_id: int):
     db_book = db.query(Book).filter(Book.id == book_id).first()
     if not db_book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    
+    # Check for any loans associated with the book
+    active_loans = db.query(Loan).filter(Loan.book_id == book_id).count()
+    if active_loans > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete book with active loans")
+    
     db.delete(db_book)
     db.commit()
-    return db_book
+    return {"message": "Book deleted successfully", "book": db_book}

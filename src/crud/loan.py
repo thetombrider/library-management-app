@@ -25,7 +25,7 @@ def create_loan(db: Session, loan: LoanCreate):
     if db_loan:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book is already loaned out")
 
-    db_loan = Loan(**loan.dict())
+    db_loan = Loan(**loan.model_dump())
     db.add(db_loan)
     db.commit()
     db.refresh(db_loan)
@@ -35,7 +35,7 @@ def update_loan(db: Session, loan_id: int, loan: LoanUpdate):
     db_loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not db_loan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
-    for key, value in loan.dict().items():
+    for key, value in loan.model_dump().items():
         setattr(db_loan, key, value)
     db.commit()
     db.refresh(db_loan)
@@ -47,4 +47,4 @@ def delete_loan(db: Session, loan_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
     db.delete(db_loan)
     db.commit()
-    return db_loan
+    return {"message": "Loan deleted successfully", "loan": db_loan}

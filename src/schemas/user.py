@@ -15,3 +15,7 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+class UserDelete(BaseModel):
+    message: str
+    user: User

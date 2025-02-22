@@ -18,3 +18,7 @@ class Loan(LoanBase):
 
     class Config:
         from_attributes = True
+
+class LoanDelete(BaseModel):
+    message: str
+    loan: Loan
