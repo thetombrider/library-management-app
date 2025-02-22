@@ -8,7 +8,16 @@ def get_books(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Book).offset(skip).limit(limit).all()
 
 def create_book(db: Session, book: BookCreate):
-    db_book = Book(title=book.title, author=book.author, description=book.description)
+    # Check for duplicate books by ISBN if present, otherwise by title
+    if book.isbn:
+        duplicate_book = db.query(Book).filter(Book.isbn == book.isbn).first()
+    else:
+        duplicate_book = db.query(Book).filter(Book.title == book.title).first()
+    
+    if duplicate_book:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book with the same ISBN or title already exists")
+    
+    db_book = Book(title=book.title, author=book.author, description=book.description, isbn=book.isbn)
     db.add(db_book)
     db.commit()
     db.refresh(db_book)

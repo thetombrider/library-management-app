@@ -4,6 +4,7 @@ class BookBase(BaseModel):
     title: str
     author: str
     description: str
+    isbn: str | None = None
 
 class BookCreate(BookBase):
     pass
