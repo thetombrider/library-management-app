@@ -8,6 +8,9 @@ class BookBase(BaseModel):
 class BookCreate(BookBase):
     pass
 
+class BookUpdate(BookBase):
+    pass
+
 class Book(BookBase):
     id: int
 

@@ -31,12 +31,20 @@ def create_loan(db: Session, loan: LoanCreate):
     db.refresh(db_loan)
     return db_loan
 
-def update_loan_return_date(db: Session, loan_id: int, loan_update: LoanUpdate):
+def update_loan(db: Session, loan_id: int, loan: LoanUpdate):
     db_loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not db_loan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
-
-    db_loan.return_date = loan_update.return_date
+    for key, value in loan.dict().items():
+        setattr(db_loan, key, value)
     db.commit()
     db.refresh(db_loan)
+    return db_loan
+
+def delete_loan(db: Session, loan_id: int):
+    db_loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not db_loan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
+    db.delete(db_loan)
+    db.commit()
     return db_loan

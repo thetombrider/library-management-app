@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI
-from src.routers import books, loans, users
+from src.routers import books_router, loans_router, users_router
 from init_db import init_db
 
 # Check if the database exists
@@ -10,9 +10,9 @@ if not os.path.exists("src/books.db"):
 
 app = FastAPI()
 
-app.include_router(books.router, prefix="/books", tags=["books"])
-app.include_router(loans.router, prefix="/loans", tags=["loans"])
-app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(books_router, prefix="/books", tags=["books"])
+app.include_router(loans_router, prefix="/loans", tags=["loans"])
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 @app.get("/")
 def read_root():

@@ -15,5 +15,9 @@ def create_loan(loan: schemas.LoanCreate, db: Session = Depends(get_db)):
     return crud.loan.create_loan(db=db, loan=loan)
 
 @router.put("/{loan_id}", response_model=schemas.Loan)
-def update_loan_return_date(loan_id: int, loan_update: schemas.LoanUpdate, db: Session = Depends(get_db)):
-    return crud.loan.update_loan_return_date(db=db, loan_id=loan_id, loan_update=loan_update)
+def update_loan(loan_id: int, loan: schemas.LoanUpdate, db: Session = Depends(get_db)):
+    return crud.loan.update_loan(db=db, loan_id=loan_id, loan=loan)
+
+@router.delete("/{loan_id}", response_model=schemas.Loan)
+def delete_loan(loan_id: int, db: Session = Depends(get_db)):
+    return crud.loan.delete_loan(db=db, loan_id=loan_id)
