@@ -4,7 +4,7 @@ from backend.models.book import Book
 from backend.models.user import User
 from backend.schemas.loan import LoanCreate, LoanUpdate, LoanDelete
 from fastapi import HTTPException, status
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 def get_loans(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Loan).offset(skip).limit(limit).all()
@@ -25,7 +25,11 @@ def create_loan(db: Session, loan: LoanCreate):
     if db_loan:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book is already loaned out")
 
-    db_loan = Loan(**loan.model_dump())
+    # Set default return date and loan date if not provided
+    loan_date = loan.loan_date if loan.loan_date else datetime.now(timezone.utc)
+    return_date = loan.return_date if loan.return_date else datetime.now(timezone.utc) + timedelta(days=30)
+
+    db_loan = Loan(book_id=loan.book_id, user_id=loan.user_id, loan_date=loan_date, return_date=return_date)
     db.add(db_loan)
     db.commit()
     db.refresh(db_loan)

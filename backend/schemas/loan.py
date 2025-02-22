@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class LoanBase(BaseModel):
     book_id: int
     user_id: int
-    loan_date: datetime = Field(default_factory=datetime.utcnow)
-    return_date: datetime | None = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=30))
+    loan_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    return_date: datetime | None = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
 
 class LoanCreate(LoanBase):
     pass
