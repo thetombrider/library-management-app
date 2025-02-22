@@ -1,10 +1,10 @@
 import os
 from fastapi import FastAPI
-from src.routers import books_router, loans_router, users_router
+from backend.routers import books_router, loans_router, users_router
 from init_db import init_db
 
 # Check if the database exists
-if not os.path.exists("src/books.db"):
+if not os.path.exists("books.db"):
     print("Database not found. Initializing database...")
     init_db()
 
