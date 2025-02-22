@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from src.models.loan import Loan
-from src.models.book import Book
-from src.models.user import User
-from src.schemas.loan import LoanCreate, LoanUpdate
+from backend.models.loan import Loan
+from backend.models.book import Book
+from backend.models.user import User
+from backend.schemas.loan import LoanCreate, LoanUpdate
 from fastapi import HTTPException, status
 from datetime import datetime
 

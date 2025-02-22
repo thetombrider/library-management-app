@@ -16,6 +16,6 @@ def get_db():
         db.close()
 
 # Import models
-from src.models.book import Book
-from src.models.user import User
-from src.models.loan import Loan
+from backend.models.book import Book
+from backend.models.user import User
+from backend.models.loan import Loan

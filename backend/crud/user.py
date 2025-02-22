@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from src.models.user import User
-from src.models.loan import Loan
-from src.schemas.user import UserCreate, UserUpdate
+from backend.models.user import User
+from backend.models.loan import Loan
+from backend.schemas.user import UserCreate, UserUpdate
 from fastapi import HTTPException, status
 
 def get_users(db: Session, skip: int = 0, limit: int = 10):

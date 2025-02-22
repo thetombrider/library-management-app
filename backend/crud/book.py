@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from src.models.book import Book
-from src.models.loan import Loan
-from src.schemas.book import BookCreate, BookUpdate
+from backend.models.book import Book
+from backend.models.loan import Loan
+from backend.schemas.book import BookCreate, BookUpdate
 from fastapi import HTTPException, status
 
 def get_books(db: Session, skip: int = 0, limit: int = 10):
