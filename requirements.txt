@@ -1,6 +1,10 @@
+#backend
 fastapi
 uvicorn
 pydantic
 sqlalchemy
 alembic
+
+#frontend
+streamlit
 
