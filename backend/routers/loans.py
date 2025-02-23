@@ -21,4 +21,4 @@ def update_loan(loan_id: int, loan: schemas.LoanUpdate, db: Session = Depends(ge
 @router.delete("/{loan_id}", response_model=schemas.LoanDelete)
 def delete_loan(loan_id: int, db: Session = Depends(get_db)):
     deleted_loan = crud.loan.delete_loan(db=db, loan_id=loan_id)
-    return schemas.LoanDelete(message="Loan deleted successfully", loan=deleted_loan["loan"])
+    return deleted_loan
