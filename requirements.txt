@@ -4,6 +4,7 @@ uvicorn
 pydantic
 sqlalchemy
 alembic
+requests
 
 #frontend
 streamlit
