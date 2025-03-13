@@ -23,7 +23,7 @@ def create_book(db: Session, book: BookCreate):
         metadata = fetch_book_metadata(book.isbn)
         if metadata:
             # Update book data with metadata from Google Books
-            book_data = book.dict()
+            book_data = book.model_dump()
             book_data.update(metadata)
             db_book = Book(**book_data)
         else:

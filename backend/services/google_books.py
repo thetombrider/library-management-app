@@ -19,12 +19,23 @@ def fetch_book_metadata(isbn):
     # Extract the book information
     volume_info = data["items"][0]["volumeInfo"]
     
+    # Extract publish year from publishedDate if available
+    publish_year = None
+    published_date = volume_info.get("publishedDate", "")
+    if published_date and len(published_date) >= 4:
+        try:
+            publish_year = int(published_date[:4])
+        except ValueError:
+            pass
+    
     # Prepare metadata dictionary
     metadata = {
         "title": volume_info.get("title", ""),
         "author": ", ".join(volume_info.get("authors", [])),
         "description": volume_info.get("description", ""),
-        "isbn": isbn  # Keep the original ISBN
+        "isbn": isbn,  # Keep the original ISBN
+        "publisher": volume_info.get("publisher", ""),
+        "publish_year": publish_year
     }
     
     return metadata

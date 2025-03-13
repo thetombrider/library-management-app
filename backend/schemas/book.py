@@ -1,10 +1,13 @@
 from pydantic import BaseModel
 
 class BookBase(BaseModel):
-    title: str
-    author: str
-    description: str
-    isbn: str | None = None
+    title: str | None = None
+    author: str | None = None
+    description: str | None = None
+    isbn: str 
+    publisher: str | None = None
+    publish_year: int | None = None
+    owner_id: int | None = None
 
 class BookCreate(BookBase):
     pass

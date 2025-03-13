@@ -10,3 +10,4 @@ class User(Base):
     email = Column(String, unique=True, index=True)
 
     loans = relationship("Loan", back_populates="user")
+    owned_books = relationship("Book", back_populates="owner")
