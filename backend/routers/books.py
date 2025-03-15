@@ -22,7 +22,7 @@ def read_books(
     """
     # Query per recuperare i libri che appartengono all'utente o che ha in prestito
     user_id = current_user.id
-    
+     
     # Debug
     print(f"Fetching books for user ID: {user_id}")
     
