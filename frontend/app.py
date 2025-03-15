@@ -47,23 +47,6 @@ with st.sidebar:
 # Header del contenuto principale
 st.title("La Mia Biblioteca")
 
-# Menu di navigazione rapida (mantenuto per compatibilità)
-menu = st.columns([1, 1, 3])
-with menu[0]:
-    if st.button("📚 Visualizza Libri"):
-        st.session_state.view = 'grid'
-        invalidate_caches()
-        st.rerun()
-with menu[1]:
-    if st.button("➕ Aggiungi Libro"):
-        st.session_state.view = 'add_book'
-        st.rerun()
-with menu[2]:
-    # Aggiungiamo qui il pulsante per la gestione degli utenti
-    if st.button("👥 Gestione Utenti", key="btn_users_top"):
-        st.session_state.view = 'manage_users'
-        st.rerun()
-
 # Routing
 if st.session_state.view == 'grid':
     show_book_grid()
