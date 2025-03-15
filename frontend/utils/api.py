@@ -1,10 +1,11 @@
+import os
 import streamlit as st
 import requests
 import base64
 import datetime
 
-# Configurazione
-API_URL = "http://localhost:8000"
+# Usa variabile d'ambiente, con fallback su localhost
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 def get_auth_header():
     """Ottiene l'header di autenticazione se disponibile"""

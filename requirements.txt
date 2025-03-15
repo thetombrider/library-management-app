@@ -11,6 +11,7 @@ passlib
 python-jose
 python-multipart
 bcrypt
+email-validator
 
 #frontend
 streamlit
