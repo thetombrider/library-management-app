@@ -7,35 +7,34 @@ import datetime
 # Configurazione
 API_URL = "http://localhost:8000"
 BOOKS_PER_ROW = 4  # Numero di libri per riga
-CACHE_TTL = 0  # Tempo di cache in secondi (5 minuti)
 
-# Caching dei dati con Streamlit
-@st.cache_data(ttl=CACHE_TTL)
+
+
 def fetch_books():
     """Ottiene la lista dei libri con cache TTL di 5 minuti"""
     response = requests.get(f"{API_URL}/books/")
     return response.json() if response.status_code == 200 else []
 
-@st.cache_data(ttl=CACHE_TTL)
+
 def fetch_book(book_id):
     """Ottiene un singolo libro con cache TTL di 5 minuti"""
     response = requests.get(f"{API_URL}/books/{book_id}")
     return response.json() if response.status_code == 200 else None
 
-@st.cache_data(ttl=CACHE_TTL)
+
 def fetch_users():
     """Ottiene la lista degli utenti con cache TTL di 5 minuti"""
     response = requests.get(f"{API_URL}/users/")
     return response.json() if response.status_code == 200 else []
 
-@st.cache_data(ttl=30)
+
 def fetch_loans():
     """Ottiene la lista dei prestiti con cache TTL"""
     response = requests.get(f"{API_URL}/loans/")
     return response.json() if response.status_code == 200 else []
 
 # Cache per le immagini delle copertine
-@st.cache_data(ttl=CACHE_TTL)
+@st.cache_data(ttl=300)
 def get_book_cover(book_id):
     """Carica e memorizza nella cache l'immagine della copertina"""
     try:
@@ -120,7 +119,7 @@ if 'isbn' in st.query_params:
     st.session_state.scanned_isbn = st.query_params['isbn']
     st.session_state.view = 'add_book'
     # Pulisci l'URL dopo aver letto il parametro
-    st.query_params.clear()
+    
 
 # Header
 st.title("La Mia Biblioteca")
@@ -298,8 +297,7 @@ def show_book_detail():
                             if response.status_code == 200:
                                 st.success("Restituzione registrata con successo!")
                                 # Aggiorna la cache dei prestiti E del libro specifico
-                                fetch_loans.clear()
-                                fetch_book.clear()
+                               
                                 # Ricarica la pagina
                                 st.rerun()
                             else:
@@ -466,7 +464,7 @@ def show_create_loan_page():
                             if st.button("Torna alla home"):
                                 st.session_state.view = 'grid'
                                 # Forziamo l'aggiornamento della cache dei prestiti
-                                fetch_loans.clear()
+                              
                                 st.rerun()
                         else:
                             error_detail = response.json().get("detail", "Errore sconosciuto")

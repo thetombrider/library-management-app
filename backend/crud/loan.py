@@ -21,11 +21,9 @@ def create_loan(db: Session, loan: LoanCreate):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Check if the book is already loaned out
-    # Aggiungiamo un margine di 5 minuti per evitare problemi con piccole differenze di orario
-    five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
     db_loan = db.query(Loan).filter(
         Loan.book_id == loan.book_id, 
-        Loan.return_date > five_minutes_ago
+        Loan.return_date > datetime.now(timezone.utc)
     ).first()
     
     if db_loan:
