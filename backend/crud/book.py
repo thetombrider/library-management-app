@@ -13,14 +13,23 @@ def get_books(db: Session, skip: int = 0, limit: int = 10):
     return books
 
 def create_book(db: Session, book: BookCreate):
-    # Check for duplicate books by ISBN if present, otherwise by title
+    # Check per duplicati solo tra i libri dello stesso proprietario
+    owner_id = book.owner_id
+    
+    # Costruisci una query che cerchi libri con lo stesso owner_id
+    duplicate_query = db.query(Book).filter(Book.owner_id == owner_id)
+    
+    # Aggiungi il filtro ISBN o titolo
     if book.isbn:
-        duplicate_book = db.query(Book).filter(Book.isbn == book.isbn).first()
+        duplicate_book = duplicate_query.filter(Book.isbn == book.isbn).first()
     else:
-        duplicate_book = db.query(Book).filter(Book.title == book.title).first()
+        duplicate_book = duplicate_query.filter(Book.title == book.title).first()
     
     if duplicate_book:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book with the same ISBN or title already exists")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Hai già un libro con lo stesso ISBN o titolo nella tua libreria"
+        )
     
     # If ISBN is provided, try to fetch metadata from Google Books API
     if book.isbn:
