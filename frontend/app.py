@@ -7,7 +7,7 @@ import datetime
 # Configurazione
 API_URL = "http://localhost:8000"
 BOOKS_PER_ROW = 4  # Numero di libri per riga
-CACHE_TTL = 60  # Tempo di cache in secondi (5 minuti)
+CACHE_TTL = 0  # Tempo di cache in secondi (5 minuti)
 
 # Caching dei dati con Streamlit
 @st.cache_data(ttl=CACHE_TTL)
@@ -28,7 +28,7 @@ def fetch_users():
     response = requests.get(f"{API_URL}/users/")
     return response.json() if response.status_code == 200 else []
 
-@st.cache_data(ttl=CACHE_TTL)
+@st.cache_data(ttl=30)
 def fetch_loans():
     """Ottiene la lista dei prestiti con cache TTL"""
     response = requests.get(f"{API_URL}/loans/")
@@ -70,9 +70,32 @@ def get_active_loans_for_book(book_id):
     """Recupera i prestiti attivi per un libro specifico"""
     loans = fetch_loans()
     active_loans = []
+    now = datetime.datetime.now()
     
     for loan in loans:
-        if (loan.get('book_id') == book_id and loan.get('return_date') is None):
+        if loan.get('book_id') != book_id:
+            continue
+            
+        # Converti le stringhe di date in oggetti datetime
+        return_date = None
+        if loan.get('return_date'):
+            try:
+                # Supporta sia formato con T che senza
+                return_date_str = loan.get('return_date').replace('Z', '+00:00')
+                return_date = datetime.datetime.fromisoformat(return_date_str)
+            except ValueError:
+                # Fallback meno preciso se fromisoformat fallisce
+                try:
+                    return_date = datetime.datetime.strptime(
+                        loan.get('return_date').split('T')[0], 
+                        '%Y-%m-%d'
+                    )
+                except:
+                    pass
+        
+        # Un prestito è attivo se return_date è None o è nel futuro
+        is_active = return_date is None or return_date > now
+        if is_active:
             active_loans.append(loan)
             
     return active_loans
@@ -266,7 +289,7 @@ def show_book_detail():
                         try:
                             # Crea dati per l'aggiornamento del prestito
                             return_data = {
-                                "return_date": datetime.datetime.now().isoformat()
+                                "return_date": datetime.datetime.now(datetime.timezone.utc).isoformat()
                             }
                             
                             # Invia richiesta al backend
@@ -274,8 +297,9 @@ def show_book_detail():
                             
                             if response.status_code == 200:
                                 st.success("Restituzione registrata con successo!")
-                                # Aggiorna la cache dei prestiti
+                                # Aggiorna la cache dei prestiti E del libro specifico
                                 fetch_loans.clear()
+                                fetch_book.clear()
                                 # Ricarica la pagina
                                 st.rerun()
                             else:

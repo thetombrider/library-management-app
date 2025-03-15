@@ -21,7 +21,13 @@ def create_loan(db: Session, loan: LoanCreate):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Check if the book is already loaned out
-    db_loan = db.query(Loan).filter(Loan.book_id == loan.book_id, Loan.return_date > datetime.now(timezone.utc)).first()
+    # Aggiungiamo un margine di 5 minuti per evitare problemi con piccole differenze di orario
+    five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db_loan = db.query(Loan).filter(
+        Loan.book_id == loan.book_id, 
+        Loan.return_date > five_minutes_ago
+    ).first()
+    
     if db_loan:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book is already loaned out")
 
@@ -39,8 +45,18 @@ def update_loan(db: Session, loan_id: int, loan: LoanUpdate):
     db_loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not db_loan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
-    for key, value in loan.model_dump().items():
-        setattr(db_loan, key, value)
+    
+    # Assicuriamo che la data di restituzione includa la timezone UTC
+    if loan.return_date and not loan.return_date.tzinfo:
+        loan_dict = loan.model_dump()
+        loan_dict["return_date"] = loan.return_date.replace(tzinfo=timezone.utc)
+        for key, value in loan_dict.items():
+            setattr(db_loan, key, value)
+    else:
+        # Se la data ha già la timezone, usiamo i dati così come sono
+        for key, value in loan.model_dump().items():
+            setattr(db_loan, key, value)
+    
     db.commit()
     db.refresh(db_loan)
     return db_loan
