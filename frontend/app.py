@@ -28,7 +28,7 @@ def fetch_users():
     response = requests.get(f"{API_URL}/users/")
     return response.json() if response.status_code == 200 else []
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=CACHE_TTL)
 def fetch_loans():
     """Ottiene la lista dei prestiti con cache TTL"""
     response = requests.get(f"{API_URL}/loans/")
@@ -158,38 +158,59 @@ def show_book_grid():
             if (book_idx < len(books)):
                 book = books[book_idx]
                 
+                # Verifica che il libro sia valido
+                if book is None:
+                    continue
+                
                 with cols[col_idx]:
+                    # Contenitore principale con altezza fissa per ciascun libro
+                    st.markdown("""
+                    <div style="min-height: 350px; display: flex; flex-direction: column;">
+                    """, unsafe_allow_html=True)
+                    
                     # Container per il libro
-                    with st.container():
-                        # Mostra la copertina se disponibile
-                        if book.get('has_cover', False):
-                            st.image(get_book_cover_url(book['id']), width=150)
-                        else:
-                            # Copertina placeholder
-                            st.markdown(
-                                """
-                                <div style="width: 150px; height: 200px; 
-                                        background-color: #f0f0f0; 
-                                        border-radius: 5px;
-                                        display: flex; 
-                                        align-items: center; 
-                                        justify-content: center;
-                                        margin: 0 auto;">
-                                    <span style="color: #999;">No Cover</span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                                
-                        # Titolo e autore sotto la copertina
-                        st.markdown(f"**{book['title'][:25]}**")
-                        st.markdown(f"{book['author'][:25]}")
-                        
-                        # Bottone per vedere i dettagli
-                        if st.button("Dettagli", key=f"btn_{book['id']}"):
-                            st.session_state.view = 'detail'
-                            st.session_state.selected_book = book['id']
-                            st.rerun()
+                    # Mostra la copertina se disponibile
+                    if book.get('has_cover', False):
+                        st.image(get_book_cover_url(book['id']), width=150)
+                    else:
+                        # Copertina placeholder
+                        st.markdown(
+                            """
+                            <div style="width: 150px; height: 200px; 
+                                    background-color: #f0f0f0; 
+                                    border-radius: 5px;
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center;
+                                    margin: 0 auto;">
+                                <span style="color: #999;">No Cover</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                            
+                    # Titolo e autore con altezza fissa
+                    title = book.get('title') or 'Titolo mancante'
+                    author = book.get('author') or 'Autore sconosciuto'
+                    
+                    # Usa contenitori di altezza fissa per i testi
+                    st.markdown(f"""
+                    <div style="height: 30px; overflow: hidden; margin-top: 10px;">
+                        <strong>{title[:25]}</strong>
+                    </div>
+                    <div style="height: 20px; overflow: hidden; margin-bottom: 10px;">
+                        {author[:25]}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Bottone per vedere i dettagli (in posizione fissa)
+                    if st.button("Dettagli", key=f"btn_{book.get('id', book_idx)}"):
+                        st.session_state.view = 'detail'
+                        st.session_state.selected_book = book.get('id')
+                        st.rerun()
+                    
+                    # Chiudi div principale
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 # Funzione per mostrare i dettagli del libro
 def show_book_detail():
@@ -201,10 +222,16 @@ def show_book_detail():
         return
     
     # Bottone per tornare alla griglia
-    if st.button("← Torna alla griglia"):
-        st.session_state.view = 'grid'
-        st.session_state.selected_book = None
-        st.rerun()
+    col_back, col_edit = st.columns([1, 1])
+    with col_back:
+        if st.button("← Torna alla griglia"):
+            st.session_state.view = 'grid'
+            st.session_state.selected_book = None
+            st.rerun()
+    with col_edit:
+        if st.button("✏️ Modifica libro"):
+            st.session_state.view = 'edit_book'
+            st.rerun()
     
     col1, col2 = st.columns([1, 2])
     
@@ -300,6 +327,7 @@ def show_book_detail():
                                 # Aggiorna la cache dei prestiti E del libro specifico
                                 fetch_loans.clear()
                                 fetch_book.clear()
+                                fetch_books.clear()  # Aggiungi anche questo
                                 # Ricarica la pagina
                                 st.rerun()
                             else:
@@ -320,6 +348,122 @@ def show_book_detail():
                 st.session_state.view = 'create_loan'
                 st.session_state.selected_book_for_loan = book_id
                 st.rerun()
+
+# Funzione per modificare un libro esistente
+def show_edit_book_page():
+    book_id = st.session_state.selected_book
+    book = fetch_book(book_id)
+    
+    if not book:
+        st.error("Libro non trovato")
+        return
+    
+    st.title(f"Modifica libro: {book['title']}")
+    
+    # Visualizza l'immagine della copertina attuale
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        if book.get('has_cover', False):
+            st.image(get_book_cover_url(book_id), width=150)
+            st.caption("Copertina attuale")
+        else:
+            st.markdown(
+                """
+                <div style="width: 150px; height: 200px; 
+                       background-color: #f0f0f0; 
+                       border-radius: 5px;
+                       display: flex; 
+                       align-items: center; 
+                       justify-content: center;">
+                    <span style="color: #999;">No Cover</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.caption("Nessuna copertina disponibile")
+    
+    with col2:
+        with st.form("edit_book_form"):
+            # Campi per la modifica
+            title = st.text_input("Titolo", value=book['title'])
+            author = st.text_input("Autore", value=book['author'])
+            
+            # Creiamo due colonne per i campi opzionali
+            col1, col2 = st.columns(2)
+            with col1:
+                isbn = st.text_input("ISBN", value=book.get('isbn', ''))
+                publish_year = st.number_input(
+                    "Anno di pubblicazione", 
+                    min_value=0, 
+                    max_value=2100, 
+                    value=book.get('publish_year', 0) or 0
+                )
+            
+            with col2:
+                publisher = st.text_input("Editore", value=book.get('publisher', ''))
+                
+                # Seleziona proprietario
+                users = fetch_users()
+                user_options = [("Nessuno", None)] + [(user['name'], user['id']) for user in users]
+                user_display_dict = {user_id: user_name for user_name, user_id in user_options}
+                
+                selected_user = st.selectbox(
+                    "Proprietario", 
+                    options=[user_id for _, user_id in user_options],
+                    format_func=lambda x: user_display_dict.get(x, "Sconosciuto"),
+                    index=next((i for i, (_, user_id) in enumerate(user_options) if user_id == book.get('owner_id')), 0)
+                )
+            
+            # Descrizione su tutta la larghezza
+            description = st.text_area("Descrizione", value=book.get('description', ''), height=150)
+            
+            # Nota sulle copertine
+            st.info("Per aggiornare la copertina, modifica l'ISBN e salva. Il sistema tenterà di scaricare la nuova copertina.")
+            
+            # Bottoni per le azioni
+            col1, col2 = st.columns(2)
+            with col1:
+                cancel = st.form_submit_button("Annulla")
+            with col2:
+                submit = st.form_submit_button("Salva modifiche")
+            
+            if cancel:
+                st.session_state.view = 'detail'
+                st.rerun()
+            
+            if submit:
+                if not title or not author:
+                    st.error("Titolo e autore sono campi obbligatori.")
+                else:
+                    # Prepara i dati per l'aggiornamento
+                    update_data = {
+                        "title": title,
+                        "author": author,
+                        "description": description,
+                        "isbn": isbn if isbn else None,
+                        "publisher": publisher if publisher else None,
+                        "publish_year": publish_year if publish_year > 0 else None,
+                        "owner_id": selected_user
+                    }
+                    
+                    try:
+                        with st.spinner("Aggiornamento in corso..."):
+                            response = requests.put(f"{API_URL}/books/{book_id}", json=update_data)
+                            
+                            if response.status_code == 200:
+                                st.success("Libro aggiornato con successo!")
+                                # Aggiorna la cache
+                                fetch_books.clear()
+                                fetch_book.clear()
+                                # Ritorna alla pagina di dettaglio
+                                st.session_state.view = 'detail'
+                                st.rerun()
+                            else:
+                                error_detail = response.json().get("detail", "Errore sconosciuto")
+                                st.error(f"Errore nell'aggiornamento: {error_detail}")
+                    except Exception as e:
+                        st.error(f"Errore di connessione: {str(e)}")
 
 # Funzione semplificata per aggiungere un libro tramite ISBN
 def show_add_book_page():
@@ -371,20 +515,6 @@ def show_add_book_page():
                         else:
                             st.error(f"Errore: {response.json().get('detail', 'Errore sconosciuto')}")
                     except Exception as e:
-                        st.error(f"Errore: {str(e)}")
-
-# Funzione per creare un nuovo prestito
-def show_create_loan_page():
-    book_id = st.session_state.selected_book_for_loan
-    book = fetch_book(book_id)
-    
-    if not book:
-        st.error("Libro non trovato")
-        st.button("Torna alla home", on_click=lambda: set_state('grid'))
-        return
-    
-    st.title(f"Presta il libro: {book['title']}")
-    
     # Visualizza le informazioni del libro
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -462,12 +592,13 @@ def show_create_loan_page():
                         
                         if response.status_code == 200:
                             st.success(f"Libro prestato con successo a {selected_user_display.split('(')[0].strip()}")
-                            # Aggiungi pulsante per tornare alla home
-                            if st.button("Torna alla home"):
-                                st.session_state.view = 'grid'
-                                # Forziamo l'aggiornamento della cache dei prestiti
-                                fetch_loans.clear()
-                                st.rerun()
+                            
+                            # Verifica se il prestito è stato completato
+                            if 'loan_completed' not in st.session_state:
+                                st.session_state.loan_completed = True
+                            
+                            # Mostra sempre il bottone dopo un prestito riuscito
+                            st.button("Torna alla home", on_click=go_to_home)
                         else:
                             error_detail = response.json().get("detail", "Errore sconosciuto")
                             st.error(f"Errore nel prestito: {error_detail}")
@@ -481,6 +612,19 @@ def set_state(view_name, **kwargs):
     st.session_state.view = view_name
     for key, value in kwargs.items():
         st.session_state[key] = value
+
+# Funzione helper per tornare alla home
+def go_to_home():
+    """Funzione callback per tornare alla home e pulire la cache"""
+    st.session_state.view = 'grid'
+    st.session_state.selected_book_for_loan = None
+    if 'loan_completed' in st.session_state:
+        del st.session_state.loan_completed
+    # Pulisci le cache
+    fetch_loans.clear()
+    fetch_book.clear()
+    fetch_books.clear()
+    st.rerun()
 
 # JavaScript per intercettare i click sulle copertine
 js = """
@@ -517,6 +661,8 @@ elif st.session_state.view == 'add_book':
     show_add_book_page()
 elif st.session_state.view == 'create_loan':
     show_create_loan_page()
+elif st.session_state.view == 'edit_book':
+    show_edit_book_page()
 
 # Stile CSS
 st.markdown(
