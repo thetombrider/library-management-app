@@ -4,6 +4,7 @@ from backend.models.loan import Loan
 from backend.schemas.book import BookCreate, BookUpdate, BookDelete
 from fastapi import HTTPException, status
 from backend.services.google_books import fetch_book_metadata
+from datetime import datetime
 
 def get_books(db: Session, skip: int = 0, limit: int = 10):
     books = db.query(Book).offset(skip).limit(limit).all()
@@ -80,11 +81,29 @@ def delete_book(db: Session, book_id: int):
     if not db_book:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     
-    # Check for any loans associated with the book
-    active_loans = db.query(Loan).filter(Loan.book_id == book_id).count()
+    # Verifica se ci sono prestiti attivi per questo libro
+    # Un prestito è attivo se non ha data di restituzione o la data è nel futuro
+    now = datetime.now()
+    active_loans = db.query(Loan).filter(
+        Loan.book_id == book_id,
+        (Loan.return_date == None) | (Loan.return_date > now)
+    ).count()
+    
     if active_loans > 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete book with active loans")
     
+    # Prima elimina tutti i prestiti (restituiti) associati a questo libro
+    db.query(Loan).filter(Loan.book_id == book_id).delete()
+    
+    # Poi elimina il libro
     db.delete(db_book)
-    db.commit()
-    return {"message": "Book deleted successfully", "book": db_book}
+    
+    try:
+        db.commit()
+        return {"message": "Book deleted successfully", "book": db_book}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
