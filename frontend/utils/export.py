@@ -2,7 +2,9 @@ import pandas as pd
 import streamlit as st
 import io
 import zipfile
-from utils.api import fetch_books, fetch_users, fetch_loans, fetch_book
+import base64
+import requests
+from utils.api import fetch_books, fetch_users, fetch_loans, fetch_book, get_book_cover
 
 def export_all_data():
     """Esporta tutti i dati in file CSV e restituisce un file ZIP"""
@@ -24,6 +26,9 @@ def export_all_data():
             loans_csv = export_loans_csv()
             zip_file.writestr('prestiti.csv', loans_csv)
             
+            # Esporta copertine
+            export_covers_to_zip(zip_file)
+            
             # Aggiungi un file README
             readme_text = """
 # Export Biblioteca
@@ -33,6 +38,7 @@ Questo archivio contiene i dati esportati della biblioteca.
 - libri.csv: L'elenco completo dei libri nella biblioteca
 - utenti.csv: L'elenco degli utenti registrati
 - prestiti.csv: Lo storico dei prestiti
+- covers/: Cartella contenente le copertine dei libri (quando disponibili)
 
 Esportato il: {date}
             """.format(date=pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -47,6 +53,33 @@ Esportato il: {date}
         st.error(f"Errore durante l'esportazione: {str(e)}")
         return None
 
+def export_covers_to_zip(zip_file):
+    """Esporta le copertine dei libri nel file ZIP"""
+    books = fetch_books()
+    
+    # Crea una cartella per le copertine
+    for book in books:
+        if book.get('has_cover', False):
+            try:
+                # Ottieni i dati binari della copertina
+                book_id = book['id']
+                cover_data_uri = get_book_cover(book_id)
+                
+                if cover_data_uri:
+                    # Estrai i dati binari dalla stringa base64
+                    # Formato: "data:image/jpeg;base64,..."
+                    base64_data = cover_data_uri.split(',')[1]
+                    image_data = base64.b64decode(base64_data)
+                    
+                    # Crea un nome file per la copertina
+                    filename = f"covers/book_{book_id}.jpg"
+                    
+                    # Aggiungi la copertina al file ZIP
+                    zip_file.writestr(filename, image_data)
+            except Exception as e:
+                print(f"Errore nell'esportazione della copertina per il libro {book['id']}: {e}")
+                continue
+
 def export_books_csv():
     """Esporta i dati dei libri in formato CSV"""
     books = fetch_books()
@@ -56,13 +89,20 @@ def export_books_csv():
     
     # Elimina colonne che non vogliamo esportare
     if 'has_cover' in df.columns:
-        df = df.drop('has_cover', axis=1)
+        # Manteniamo has_cover ma la convertiamo in un valore sì/no per leggibilità
+        df['has_cover'] = df['has_cover'].apply(lambda x: "Sì" if x else "No")
     
     # Aggiungi informazioni sul proprietario
     if 'owner_id' in df.columns and not df['owner_id'].isna().all():
         df['owner_name'] = df['owner_id'].apply(
             lambda x: fetch_users_dict().get(x, {}).get('name', 'Sconosciuto') if x else 'Nessuno'
         )
+    
+    # Aggiungi una colonna che indica il percorso della copertina nel file ZIP
+    df['cover_path'] = df.apply(
+        lambda row: f"covers/book_{row['id']}.jpg" if row.get('has_cover') == "Sì" else "Nessuna copertina", 
+        axis=1
+    )
     
     # Converti il DataFrame in CSV
     csv_buffer = io.StringIO()
@@ -108,7 +148,10 @@ def export_loans_csv():
         if 'loan_date' in df.columns:
             df['loan_date'] = pd.to_datetime(df['loan_date']).dt.strftime('%Y-%m-%d')
         if 'return_date' in df.columns:
-            df['return_date'] = pd.to_datetime(df['return_date']).dt.strftime('%Y-%m-%d')
+            # Gestire NaN
+            df['return_date'] = df['return_date'].apply(
+                lambda x: pd.to_datetime(x).strftime('%Y-%m-%d') if pd.notna(x) else 'Non restituito'
+            )
     
     # Converti il DataFrame in CSV
     csv_buffer = io.StringIO()
