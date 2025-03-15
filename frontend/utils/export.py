@@ -5,7 +5,7 @@ import zipfile
 import base64
 import requests
 from utils.api import fetch_books, fetch_users, fetch_loans, fetch_book, get_book_cover
-
+#Funzione per esportare i dati
 def export_all_data():
     """Esporta tutti i dati in file CSV e restituisce un file ZIP"""
     try:
