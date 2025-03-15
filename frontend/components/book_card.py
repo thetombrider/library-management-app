@@ -2,7 +2,7 @@ import streamlit as st
 from utils.api import get_book_cover_url
 from utils.state import set_state
 
-def render_book_card(book, show_button=True):
+def render_book_card(book, show_button=True, additional_info=None):
     """Renderizza una card di libro"""
     with st.container():
         # Mostra la copertina se disponibile
@@ -31,6 +31,10 @@ def render_book_card(book, show_button=True):
         
         st.markdown(f"**{title[:25]}**")
         st.markdown(f"{author[:25]}")
+        
+        # Informazioni aggiuntive (es. proprietario per i libri presi in prestito)
+        if additional_info:
+            st.markdown(f"*{additional_info}*")
         
         # Bottone per vedere i dettagli
         if show_button and st.button("Dettagli", key=f"btn_{book.get('id')}"):
