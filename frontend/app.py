@@ -90,10 +90,10 @@ with st.sidebar:
     
     # Info
     st.markdown("---")
-    st.caption("© 2023 La Mia Biblioteca")
+    st.caption("© 2023 Tommaso Minuto")
 
 # Header del contenuto principale
-st.title("La Mia Biblioteca")
+st.title("Book Manager")
 
 # Routing principale
 if st.session_state.view == 'login':
