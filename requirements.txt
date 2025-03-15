@@ -7,6 +7,10 @@ alembic
 requests
 Pillow  # Aggiunto per la manipolazione delle immagini
 pandas
+passlib
+python-jose
+python-multipart
+bcrypt
 
 #frontend
 streamlit
