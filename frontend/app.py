@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.state import initialize_state
 from utils.api import invalidate_caches
+from utils.export import export_all_data
 from views.book_grid import show_book_grid
 from views.book_detail import show_book_detail
 from views.add_book import show_add_book_page
@@ -39,6 +40,23 @@ with st.sidebar:
     if st.sidebar.button("👥 Gestione Utenti", use_container_width=True):
         st.session_state.view = 'manage_users'
         st.rerun()
+    
+    # Sezione Esportazione
+    st.subheader("Utilità")
+    if st.sidebar.button("📊 Esporta Dati (CSV)", use_container_width=True):
+        # Genera il file ZIP con i CSV
+        zip_data = export_all_data()
+        
+        # Crea un link per il download
+        st.sidebar.download_button(
+            label="📥 Scarica dati (ZIP)",
+            data=zip_data,
+            file_name="biblioteca_export.zip",
+            mime="application/zip",
+            use_container_width=True
+        )
+        
+        st.sidebar.success("File di esportazione generato con successo!")
     
     # Info
     st.markdown("---")
