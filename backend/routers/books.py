@@ -14,10 +14,6 @@ def read_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 def create_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
     return crud.book.create_book(db=db, book=book)
 
-@router.put("/{book_id}", response_model=schemas.Book)
-def update_book(book_id: int, book: schemas.BookUpdate, db: Session = Depends(get_db)):
-    return crud.book.update_book(db=db, book_id=book_id, book=book)
-
 @router.delete("/{book_id}", response_model=schemas.BookDelete)
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     deleted_book = crud.book.delete_book(db=db, book_id=book_id)
@@ -33,3 +29,19 @@ def get_book_cover(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Nessuna copertina disponibile")
     
     return Response(content=db_book.cover_image, media_type="image/jpeg")
+
+@router.get("/{book_id}", response_model=schemas.Book)
+def read_book(book_id: int, db: Session = Depends(get_db)):
+    """Ottieni un singolo libro tramite ID"""
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    
+    # Imposta il flag has_cover
+    setattr(db_book, "has_cover", db_book.cover_image is not None)
+    
+    return db_book
+
+@router.put("/{book_id}", response_model=schemas.Book)
+def update_book(book_id: int, book: schemas.BookUpdate, db: Session = Depends(get_db)):
+    return crud.book.update_book(db=db, book_id=book_id, book=book)

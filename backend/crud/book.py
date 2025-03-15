@@ -29,7 +29,17 @@ def create_book(db: Session, book: BookCreate):
             # Update book data with metadata from Google Books
             book_data = book.model_dump()
             book_data.update(metadata)
+            
+            # Verifica che l'immagine sia stata recuperata correttamente
+            has_cover = metadata.get('cover_image') is not None
+            print(f"Cover image retrieved: {has_cover}")
+            if has_cover:
+                print(f"Cover image size: {len(metadata['cover_image'])} bytes")
+            
             db_book = Book(**book_data)
+            
+            # Verifica dopo la creazione dell'oggetto
+            print(f"Book object has cover: {db_book.cover_image is not None}")
         else:
             # If no metadata found, use the provided data
             db_book = Book(**book.model_dump())
@@ -40,6 +50,10 @@ def create_book(db: Session, book: BookCreate):
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
+    
+    # Imposta il flag has_cover dopo il refresh del database
+    setattr(db_book, "has_cover", db_book.cover_image is not None)
+    
     return db_book
 
 def update_book(db: Session, book_id: int, book: BookUpdate):
