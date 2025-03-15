@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, LargeBinary
 from sqlalchemy.orm import relationship
 from backend.database import Base
 
@@ -13,6 +13,7 @@ class Book(Base):
     publisher = Column(String, nullable=True)
     publish_year = Column(Integer, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cover_image = Column(LargeBinary, nullable=True)  # Aggiungiamo il campo per la copertina
     
     loans = relationship("Loan", back_populates="book")
     owner = relationship("User", back_populates="owned_books")

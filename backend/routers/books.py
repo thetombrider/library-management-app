@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from backend import crud, models, schemas
 from backend.database import get_db
@@ -22,3 +22,14 @@ def update_book(book_id: int, book: schemas.BookUpdate, db: Session = Depends(ge
 def delete_book(book_id: int, db: Session = Depends(get_db)):
     deleted_book = crud.book.delete_book(db=db, book_id=book_id)
     return schemas.BookDelete(message="Book deleted successfully", book=deleted_book["book"])
+
+@router.get("/{book_id}/cover", response_class=Response)
+def get_book_cover(book_id: int, db: Session = Depends(get_db)):
+    """Ottieni la copertina del libro"""
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    if not db_book.cover_image:
+        raise HTTPException(status_code=404, detail="Nessuna copertina disponibile")
+    
+    return Response(content=db_book.cover_image, media_type="image/jpeg")

@@ -5,6 +5,7 @@ pydantic
 sqlalchemy
 alembic
 requests
+Pillow  # Aggiunto per la manipolazione delle immagini
 
 #frontend
 streamlit

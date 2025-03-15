@@ -6,7 +6,11 @@ from fastapi import HTTPException, status
 from backend.services.google_books import fetch_book_metadata
 
 def get_books(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(Book).offset(skip).limit(limit).all()
+    books = db.query(Book).offset(skip).limit(limit).all()
+    # Aggiungiamo un flag per indicare se il libro ha una copertina
+    for book in books:
+        setattr(book, "has_cover", book.cover_image is not None)
+    return books
 
 def create_book(db: Session, book: BookCreate):
     # Check for duplicate books by ISBN if present, otherwise by title
