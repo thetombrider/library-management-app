@@ -14,6 +14,32 @@ def show_add_book_page():
     # Se c'è un ISBN scansionato, pre-riempire il form
     initial_isbn = st.session_state.scanned_isbn if 'scanned_isbn' in st.session_state else ""
     
+    # Controlla se stiamo in fase di conferma dopo aggiunta
+    if 'temp_added_book' in st.session_state:
+        book_id = st.session_state.temp_added_book
+        st.success("Libro aggiunto con successo!")
+        st.info("Cosa vuoi fare ora?")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Visualizza Libro", key="view_added_book"):
+                del st.session_state.temp_added_book  # Pulisci lo stato
+                set_state('detail', selected_book=book_id)
+                st.rerun()
+        
+        with col2:
+            if st.button("Aggiungi un altro libro", key="add_another"):
+                del st.session_state.temp_added_book  # Pulisci lo stato
+                st.rerun()  # Semplicemente ricarica la pagina
+                
+        # Aggiungi un terzo pulsante per tornare alla home
+        if st.button("Torna alla home", key="home_from_added"):
+            del st.session_state.temp_added_book  # Pulisci lo stato
+            set_state('grid')
+            st.rerun()
+            
+        return  # Esci dalla funzione evitando di mostrare il form
+    
     # Fase 1: Form per inserire l'ISBN
     with st.form("isbn_entry"):
         isbn = st.text_input("ISBN del libro:", value=initial_isbn, placeholder="Es. 9788804507451")
@@ -34,7 +60,6 @@ def show_add_book_page():
                     
                     if response.status_code == 200:
                         book = response.json()
-                        st.success("Libro aggiunto con successo!")
                         
                         # Mostra dettagli del libro aggiunto
                         col1, col2 = st.columns([1, 2])
@@ -63,17 +88,9 @@ def show_add_book_page():
                             st.write(f"**Editore:** {book.get('publisher', 'N/A')}")
                             st.write(f"**Anno:** {book.get('publish_year', 'N/A')}")
                         
-                        # Bottoni fuori dal form
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("Visualizza Libro"):
-                                set_state('detail', selected_book=book['id'])
-                                st.rerun()
-                        
-                        with col2:
-                            if st.button("Torna alla home"):
-                                set_state('grid')
-                                st.rerun()
+                        # Salva l'ID del libro e ricarica la pagina per evitare problemi con i bottoni
+                        st.session_state.temp_added_book = book['id']
+                        st.rerun()  # Ricarica la pagina che mostrerà l'interfaccia di conferma
                     else:
                         st.error(f"Errore: {response.json().get('detail', 'Errore sconosciuto')}")
                 except Exception as e:
