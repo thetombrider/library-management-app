@@ -3,13 +3,19 @@ import streamlit as st
 def initialize_state():
     """Inizializza lo stato dell'applicazione"""
     if 'view' not in st.session_state:
-        st.session_state.view = 'grid'  # possibili valori: 'grid', 'detail', 'add_book'
+        st.session_state.view = 'grid'  # possibili valori: 'grid', 'detail', 'add_book', 'login', 'register'
     if 'selected_book' not in st.session_state:
         st.session_state.selected_book = None
     if 'selected_book_for_loan' not in st.session_state:
         st.session_state.selected_book_for_loan = None
     if 'scanned_isbn' not in st.session_state:
         st.session_state.scanned_isbn = None
+    
+    # Stato autenticazione
+    if 'auth_token' not in st.session_state:
+        st.session_state.auth_token = None
+    if 'user_info' not in st.session_state:
+        st.session_state.user_info = None
     
     # Controlla se c'è un ISBN nei parametri dell'URL
     if 'isbn' in st.query_params:

@@ -6,28 +6,38 @@ import datetime
 # Configurazione
 API_URL = "http://localhost:8000"
 
+def get_auth_header():
+    """Ottiene l'header di autenticazione se disponibile"""
+    if 'auth_token' in st.session_state and st.session_state.auth_token:
+        return {"Authorization": f"Bearer {st.session_state.auth_token}"}
+    return {}
+
 @st.cache_data(ttl=300)
 def fetch_books():
     """Ottiene la lista dei libri con cache TTL di 5 minuti"""
-    response = requests.get(f"{API_URL}/books/")
+    headers = get_auth_header()
+    response = requests.get(f"{API_URL}/books/", headers=headers)
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=300)
 def fetch_book(book_id):
     """Ottiene un singolo libro con cache TTL di 5 minuti"""
-    response = requests.get(f"{API_URL}/books/{book_id}")
+    headers = get_auth_header()
+    response = requests.get(f"{API_URL}/books/{book_id}", headers=headers)
     return response.json() if response.status_code == 200 else None
 
 @st.cache_data(ttl=300)
 def fetch_users():
     """Ottiene la lista degli utenti con cache TTL di 5 minuti"""
-    response = requests.get(f"{API_URL}/users/")
+    headers = get_auth_header()
+    response = requests.get(f"{API_URL}/users/", headers=headers)
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=60)
 def fetch_loans():
     """Ottiene la lista dei prestiti con cache TTL di 1 minuto"""
-    response = requests.get(f"{API_URL}/loans/")
+    headers = get_auth_header()
+    response = requests.get(f"{API_URL}/loans/", headers=headers)
     return response.json() if response.status_code == 200 else []
 
 # Cache per le immagini delle copertine
@@ -116,3 +126,20 @@ def get_active_loans_for_book(book_id):
 def invalidate_caches():
     """Pulisce tutte le cache"""
     st.cache_data.clear()
+
+# Aggiungi funzioni di autenticazione
+def check_auth_status():
+    """Verifica lo stato di autenticazione dell'utente"""
+    return 'auth_token' in st.session_state and st.session_state.auth_token is not None
+
+def get_current_user_id():
+    """Ottiene l'ID dell'utente corrente se autenticato"""
+    if 'user_info' in st.session_state and st.session_state.user_info:
+        return st.session_state.user_info.get('id')
+    return None
+
+def is_admin():
+    """Verifica se l'utente corrente è un amministratore"""
+    if 'user_info' in st.session_state and st.session_state.user_info:
+        return st.session_state.user_info.get('role') == 'admin'
+    return False

@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from utils.api import fetch_book, get_book_cover_url, fetch_users, invalidate_caches
+from utils.api import fetch_book, get_book_cover_url, fetch_users, invalidate_caches, get_user_name
 from utils.state import set_state
 from components.ui import render_book_cover
 
@@ -45,17 +45,11 @@ def show_edit_book_page():
             with col2:
                 publisher = st.text_input("Editore", value=book.get('publisher', ''))
                 
-                # Seleziona proprietario
-                users = fetch_users()
-                user_options = [("Nessuno", None)] + [(user['name'], user['id']) for user in users]
-                user_display_dict = {user_id: user_name for user_name, user_id in user_options}
-                
-                selected_user = st.selectbox(
-                    "Proprietario", 
-                    options=[user_id for _, user_id in user_options],
-                    format_func=lambda x: user_display_dict.get(x, "Sconosciuto"),
-                    index=next((i for i, (_, user_id) in enumerate(user_options) if user_id == book.get('owner_id')), 0)
-                )
+                # Mostra proprietario come campo di solo lettura
+                owner_id = book.get('owner_id')
+                owner_name = get_user_name(owner_id) if owner_id else "Nessuno"
+                st.text_input("Proprietario", value=owner_name, disabled=True, 
+                              help="Il proprietario non può essere modificato")
             
             # Descrizione su tutta la larghezza
             description = st.text_area("Descrizione", value=book.get('description', ''), height=150)
@@ -79,6 +73,7 @@ def show_edit_book_page():
                     st.error("Titolo e autore sono campi obbligatori.")
                 else:
                     # Prepara i dati per l'aggiornamento
+                    # Importante: mantieni l'owner_id originale
                     update_data = {
                         "title": title,
                         "author": author,
@@ -86,7 +81,7 @@ def show_edit_book_page():
                         "isbn": isbn if isbn else None,
                         "publisher": publisher if publisher else None,
                         "publish_year": publish_year if publish_year > 0 else None,
-                        "owner_id": selected_user
+                        "owner_id": book.get('owner_id')  # Mantieni il proprietario originale
                     }
                     
                     try:

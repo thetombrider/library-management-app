@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from utils.api import get_book_cover_url, invalidate_caches
 from utils.state import set_state
+from utils.api import get_auth_header, get_user_name, get_current_user_id
 
 # Configurazione
 API_URL = "http://localhost:8000"
@@ -14,7 +15,7 @@ def show_add_book_page():
     # Se c'è un ISBN scansionato, pre-riempire il form
     initial_isbn = st.session_state.scanned_isbn if 'scanned_isbn' in st.session_state else ""
     
-    # Controlla se stiamo in fase di conferma dopo aggiunta
+    # Controlla se siamo in fase di conferma dopo aggiunta
     if 'temp_added_book' in st.session_state:
         book_id = st.session_state.temp_added_book
         st.success("Libro aggiunto con successo!")
@@ -55,8 +56,15 @@ def show_add_book_page():
                     # Pulizia cache prima della richiesta
                     invalidate_caches()
                     
+                    # MODIFICA: Ottieni gli headers di autenticazione
+                    headers = get_auth_header()
+                    
                     # Richiedi aggiunta libro
-                    response = requests.post(f"{API_URL}/books/", json={"isbn": isbn})
+                    response = requests.post(
+                        f"{API_URL}/books/", 
+                        json={"isbn": isbn},
+                        headers=headers  # Aggiungi gli headers di autenticazione
+                    )
                     
                     if response.status_code == 200:
                         book = response.json()
@@ -87,6 +95,10 @@ def show_add_book_page():
                             st.write(f"**Autore:** {book.get('author', 'N/A')}")
                             st.write(f"**Editore:** {book.get('publisher', 'N/A')}")
                             st.write(f"**Anno:** {book.get('publish_year', 'N/A')}")
+                            
+                            # AGGIUNTA: Mostra anche il proprietario
+                            owner_name = "Tu" if book.get('owner_id') == get_current_user_id() else get_user_name(book.get('owner_id'))
+                            st.write(f"**Proprietario:** {owner_name}")
                         
                         # Salva l'ID del libro e ricarica la pagina per evitare problemi con i bottoni
                         st.session_state.temp_added_book = book['id']

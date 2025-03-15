@@ -11,8 +11,20 @@ def read_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return books
 
 @router.post("/", response_model=schemas.Book)
-def create_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
-    return crud.book.create_book(db=db, book=book)
+def create_book(book: schemas.BookCreate, current_user: models.User = Depends(crud.user.get_current_user), db: Session = Depends(get_db)):
+    # Prima dell'implementazione attuale, assegna l'owner_id
+    # se non è già specificato e l'utente è autenticato
+    book_data = book.model_dump()
+    
+    # Imposta automaticamente l'utente autenticato come proprietario se non specificato
+    if book_data.get('owner_id') is None:
+        book_data['owner_id'] = current_user.id
+    
+    # Crea un nuovo oggetto BookCreate con i dati aggiornati
+    updated_book = schemas.BookCreate(**book_data)
+    
+    # Continua con la logica esistente
+    return crud.book.create_book(db=db, book=updated_book)
 
 @router.delete("/{book_id}", response_model=schemas.BookDelete)
 def delete_book(book_id: int, db: Session = Depends(get_db)):
