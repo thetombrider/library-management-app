@@ -50,8 +50,8 @@ def show_bulk_edit_page():
     
     if selected_count == 0:
         st.info("Seleziona i libri da modificare nella tabella sopra.")
-        # Bottone per tornare alla griglia
-        if st.button("Torna alla libreria"):
+        # Bottone per tornare alla griglia con chiave unica
+        if st.button("Torna alla libreria", key="return_to_grid_empty"):
             set_state("grid")
             st.rerun()
     else:
@@ -186,17 +186,36 @@ def show_bulk_edit_page():
                                 
                                 if response.status_code == 200:
                                     result = response.json()
-                                    st.success(f"Eliminazione completata: {result['deleted']} libri eliminati")
+                                    
+                                    # Salva il risultato nello stato della sessione per mostrarlo dopo il form
+                                    st.session_state.bulk_delete_result = result
+                                    # Aggiungi un flag per indicare che l'operazione è completata
+                                    st.session_state.bulk_delete_completed = True
                                     
                                     # Pulisci le cache
                                     invalidate_caches()
                                     
-                                    # Torna alla griglia dopo qualche secondo
-                                    import time
-                                    time.sleep(2)
-                                    set_state("grid")
+                                    # Rerun per uscire dal form e mostrare il risultato
                                     st.rerun()
                                 else:
                                     st.error(f"Errore durante l'eliminazione: {response.json().get('detail', 'Errore sconosciuto')}")
                         except Exception as e:
                             st.error(f"Errore di connessione: {str(e)}")
+
+    # Gestione risultato eliminazione dopo il form
+    if 'bulk_delete_completed' in st.session_state and st.session_state.bulk_delete_completed:
+        result = st.session_state.bulk_delete_result
+        
+        # Crea un riepilogo più dettagliato
+        with st.container():
+            st.success(f"✅ Eliminazione completata: {result['deleted']} libri eliminati")
+            
+            # Aggiungi informazioni aggiuntive se ci sono stati problemi
+            if result.get('loaned', 0) > 0:
+                st.warning(f"⚠️ {result['loaned']} libri non sono stati eliminati perché attualmente in prestito")
+                
+            if result.get('not_owned', 0) > 0:
+                st.warning(f"⚠️ {result['not_owned']} libri non sono stati eliminati perché non di tua proprietà")
+                
+            if result.get('failed', 0) > 0:
+                st.error(f"❌ {result['failed']} libri non sono stati eliminati a causa di errori")
