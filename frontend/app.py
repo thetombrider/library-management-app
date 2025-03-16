@@ -162,3 +162,11 @@ elif st.session_state.view == 'manage_users':
 # Carica stili CSS e scripts
 load_css()
 load_scripts()
+
+# Gestione cookie dopo il rendering
+if 'delete_auth_cookie_flag' in st.session_state and st.session_state.delete_auth_cookie_flag:
+    with st.container():
+        st.markdown('<div style="display:none">', unsafe_allow_html=True)
+        cookie_manager = get_cookie_manager()  # Renderizza il cookie manager per eliminare il cookie
+        st.markdown('</div>', unsafe_allow_html=True)
+    del st.session_state.delete_auth_cookie_flag

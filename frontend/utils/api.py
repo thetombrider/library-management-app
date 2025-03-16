@@ -80,8 +80,8 @@ def delete_auth_cookie():
     try:
         cookie_manager = get_cookie_manager()
         cookie_manager.delete(COOKIE_NAME)
-        # Aggiungi questo per renderizzare lo script che elimina il cookie nel browser
-        st.markdown(cookie_manager.get_script(), unsafe_allow_html=True)
+        # Imposta il flag per far rendirizzare il cookie manager dopo
+        st.session_state.delete_auth_cookie_flag = True
     except Exception as e:
         print(f"Errore durante l'eliminazione del cookie: {str(e)}")
 
@@ -93,11 +93,12 @@ def get_auth_header():
 
 # Modifica la decorazione della funzione per controllare problemi di cache
 @st.cache_data(ttl=60)  # Ridotta a 1 minuto per debug
-def fetch_books():
+def fetch_books(limit=10000):  # Imposta un limite molto alto
     """Ottiene la lista dei libri con cache TTL di 1 minuto"""
     headers = get_auth_header()
     try:
-        response = requests.get(f"{API_URL}/books/", headers=headers)
+        # Passa il parametro limit nella query string
+        response = requests.get(f"{API_URL}/books/", headers=headers, params={"limit": limit})
         if response.status_code == 200:
             data = response.json()
             # Aggiungi debug info
