@@ -2,8 +2,6 @@ name: Docker Hub Publish
 
 on:
   push:
-    tags:
-      - 'v*'    # Attiva solo sui tag che iniziano con 'v'
     branches:
       - main      # Opzionale: attiva anche sui push al branch main
 
