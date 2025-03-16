@@ -1,10 +1,10 @@
-from backend.database import engine, Base
-from backend.models.book import Book
-from backend.models.user import User
-from backend.models.loan import Loan
+from backend.database import Base, engine
+from backend.models import Book, User, Loan
 
-def init_db():
+def init_database():
+    print("Creazione delle tabelle nel database...")
     Base.metadata.create_all(bind=engine)
+    print("Database inizializzato con successo!")
 
 if __name__ == "__main__":
-    init_db()
+    init_database()

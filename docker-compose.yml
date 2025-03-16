@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  library-app:
+    image: thetombrider/library-app:latest
+    container_name: library-app
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    volumes:
+      - library-db:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/books.db
+    restart: unless-stopped
+
+volumes:
+  library-db:
+    name: library-db-data
