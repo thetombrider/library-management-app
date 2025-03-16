@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  library-app:
+    image: thetombrider/library-app:latest
+    container_name: library-app
+    ports:
+      - "8502:8501"
+    volumes:
+      - library-db:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/books.db
+    restart: unless-stopped
+
+  litestream-backup:
+    image: litestream/litestream:latest
+    volumes:
+      - library-db:/data:ro  # Read-only access to the database
+    environment:
+      - B2_ACCESS_KEY_ID=${B2_ACCESS_KEY_ID}
+      - B2_SECRET_ACCESS_KEY=${B2_SECRET_ACCESS_KEY}
+    command: replicate -config /etc/litestream.yml
+    configs:
+      - source: litestream-config
+        target: /etc/litestream.yml
+    restart: unless-stopped
+
+volumes:
+  library-db:
+    name: library-db-data
+
+configs:
+  litestream-config:
+    content: |
+      dbs:
+        - path: /data/books.db
+          replicas:
+            - url: b2://YOUR_BUCKET_NAME/books-db
+              access-key-id: ${B2_ACCESS_KEY_ID}
+              secret-access-key: ${B2_SECRET_ACCESS_KEY}
