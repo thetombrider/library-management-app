@@ -350,3 +350,18 @@ def upload_book_cover(book_id, image_data):
             return {"success": False, "error": error_detail}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def get_book_owner_name(book):
+    """Ottiene il nome del proprietario di un libro"""
+    if 'owner_name' in book and book['owner_name']:
+        return book['owner_name']
+        
+    if 'owner_id' not in book or not book['owner_id']:
+        return "Sconosciuto"
+        
+    users = fetch_users()
+    for user in users:
+        if user['id'] == book['owner_id']:
+            return user['name']
+            
+    return "Sconosciuto"

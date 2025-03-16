@@ -22,6 +22,7 @@ from static.styles import load_css
 from static.scripts import load_scripts
 from utils.api import get_cookie_manager
 from views.bulk_edit import show_bulk_edit_page
+from views.loans import show_loans_page
 
 # Inizializza lo state
 initialize_state()
@@ -45,6 +46,11 @@ with st.sidebar:
         st.subheader("Libri")
         if st.sidebar.button("📚 I miei Libri", use_container_width=True):
             st.session_state.view = 'grid'
+            invalidate_caches()
+            st.rerun()
+        
+        if st.sidebar.button("📋 Prestiti", use_container_width=True):
+            st.session_state.view = 'loans'
             invalidate_caches()
             st.rerun()
         
@@ -134,7 +140,7 @@ with st.sidebar:
     
     # Info
     st.markdown("---")
-    st.caption("© 2023 Tommaso Minuto - v1.6")
+    st.caption("© 2023 Tommaso Minuto - v1.7")
 
 # Header del contenuto principale
 st.title("Book Manager")
@@ -161,6 +167,8 @@ elif st.session_state.view == 'manage_users':
     show_manage_users_page()
 elif st.session_state.view == 'bulk_edit':
     show_bulk_edit_page()
+elif st.session_state.view == 'loans':
+    show_loans_page()
 
 # Carica stili CSS e scripts
 load_css()
