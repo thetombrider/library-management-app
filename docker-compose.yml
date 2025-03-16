@@ -11,9 +11,13 @@ services:
       - library-db:/data
     environment:
       - DATABASE_URL=sqlite:////data/books.db
-      - API_URL=http://localhost:8001
+      - API_URL=http://100.73.156.78:8001
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.centurylinklabs.watchtower.monitor-only=false"
       - "com.centurylinklabs.watchtower.stop-signal=SIGTERM"
+
+volumes:
+  library-db:
+    name: library-db-data
