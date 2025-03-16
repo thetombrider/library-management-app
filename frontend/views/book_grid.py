@@ -7,6 +7,28 @@ from components.book_card import render_book_card
 # Numero di libri per riga
 BOOKS_PER_ROW = 4
 
+def get_unique_authors():
+    """Ottiene la lista di autori unici dai libri"""
+    books = fetch_books()
+    # Estrai autori unici e ordina alfabeticamente
+    authors = sorted(list(set(book.get('author', '') for book in books if book.get('author'))))
+    return authors
+
+def get_unique_publishers():
+    """Ottiene la lista di editori unici dai libri"""
+    books = fetch_books()
+    # Estrai editori unici e ordina alfabeticamente
+    publishers = sorted(list(set(book.get('publisher', '') for book in books if book.get('publisher'))))
+    return publishers
+
+def get_unique_years():
+    """Ottiene la lista di anni unici dai libri"""
+    books = fetch_books()
+    # Estrai anni unici e ordina numericamente
+    years = sorted(list(set(str(book.get('publish_year', '')) for book in books if book.get('publish_year'))), 
+                  key=lambda x: int(x) if x.isdigit() else 0)
+    return years
+
 def show_book_grid():
     """Mostra la griglia dei libri"""
     
@@ -38,48 +60,97 @@ def show_book_grid():
     
     st.subheader("La mia libreria")
     
-    # Aggiungi barra di ricerca e filtri
-    col1, col2, col3 = st.columns([3, 1, 1])
+    # NUOVA ORGANIZZAZIONE DEI FILTRI
+    # 1. Barra di ricerca in alto a tutta larghezza
+    previous_query = st.session_state.get("search_query", "")
+    search_query = st.text_input("🔍 Cerca per titolo, autore, ISBN...", value=previous_query)
+    if search_query != previous_query:
+        st.session_state.search_query = search_query
     
-    with col1:
-        # Carica il valore precedente della query se presente
-        previous_query = st.session_state.get("search_query", "")
-        search_query = st.text_input("🔍 Cerca per titolo, autore, ISBN...", value=previous_query)
-        if search_query != previous_query:
-            st.session_state.search_query = search_query
-            # Resetta il filtro quando cambia la query
-            st.session_state.filter_by = "all"
-    
-    with col2:
-        filter_options = {
-            "all": "Tutti i libri",
-            "available": "Disponibili",
-            "loaned": "In prestito"
-        }
-        # Carica il valore precedente del filtro se presente
-        previous_filter = st.session_state.get("filter_by", "all")
-        filter_by = st.selectbox("Filtro:", options=list(filter_options.keys()), 
-                                format_func=lambda x: filter_options[x],
-                                index=list(filter_options.keys()).index(previous_filter))
-        if filter_by != previous_filter:
-            st.session_state.filter_by = filter_by
-    
-    with col3:
-        # Bottone per pulire i filtri
-        if st.button("🔄 Azzera filtri", use_container_width=True):
-            st.session_state.search_query = ""
-            st.session_state.filter_by = "all"
-            st.rerun()
+    # 2. Filtri su due righe con layout migliore
+    with st.container():
+        # Prima riga di filtri
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Filtro per stato (esistente)
+            filter_options = {
+                "all": "Tutti i libri",
+                "available": "Disponibili",
+                "loaned": "In prestito"
+            }
+            previous_filter = st.session_state.get("filter_by", "all")
+            filter_by = st.selectbox("Stato:", options=list(filter_options.keys()), 
+                                    format_func=lambda x: filter_options[x],
+                                    index=list(filter_options.keys()).index(previous_filter),
+                                    key="filter_status")
+            if filter_by != previous_filter:
+                st.session_state.filter_by = filter_by
+        
+        with col2:
+            # Filtro per autore (nuovo)
+            all_authors = ["Tutti"] + get_unique_authors()
+            previous_author = st.session_state.get("filter_author", "Tutti")
+            author_filter = st.selectbox("Autore:", 
+                                        options=all_authors,
+                                        index=all_authors.index(previous_author) if previous_author in all_authors else 0,
+                                        key="filter_author")
+            if author_filter != previous_author:
+                st.session_state.filter_author = author_filter
+        
+        with col3:
+            # Filtro per editore (nuovo)
+            all_publishers = ["Tutti"] + get_unique_publishers()
+            previous_publisher = st.session_state.get("filter_publisher", "Tutti")
+            publisher_filter = st.selectbox("Editore:", 
+                                           options=all_publishers,
+                                           index=all_publishers.index(previous_publisher) if previous_publisher in all_publishers else 0,
+                                           key="filter_publisher")
+            if publisher_filter != previous_publisher:
+                st.session_state.filter_publisher = publisher_filter
+        
+        # Seconda riga di filtri
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
+        with col1:
+            # Filtro per anno (nuovo)
+            all_years = ["Tutti"] + get_unique_years()
+            previous_year = st.session_state.get("filter_year", "Tutti")
+            year_filter = st.selectbox("Anno:", 
+                                      options=all_years,
+                                      index=all_years.index(previous_year) if previous_year in all_years else 0,
+                                      key="filter_year")
+            if year_filter != previous_year:
+                st.session_state.filter_year = year_filter
+        
+        with col3:
+            # Bottone per azzerare tutti i filtri
+            if st.button("🔄 Azzera filtri", use_container_width=True):
+                st.session_state.search_query = ""
+                st.session_state.filter_by = "all"
+                st.session_state.filter_author = "Tutti"
+                st.session_state.filter_publisher = "Tutti"
+                st.session_state.filter_year = "Tutti"
+                st.rerun()
     
     # Recupera i libri in base ai filtri
     query = st.session_state.get("search_query", "")
     filter_by = st.session_state.get("filter_by", "all")
+    filter_author = st.session_state.get("filter_author", "Tutti")
+    filter_publisher = st.session_state.get("filter_publisher", "Tutti")
+    filter_year = st.session_state.get("filter_year", "Tutti")
     
     # Debug info
-    print(f"Ricerca libri con query='{query}', filter_by='{filter_by}'")
+    print(f"Ricerca libri con query='{query}', filter_by='{filter_by}', autore='{filter_author}', editore='{filter_publisher}', anno='{filter_year}'")
     
-    # Usa la funzione search_books
-    books = search_books(query=query, filter_by=filter_by)
+    # Usa la funzione search_books con i parametri aggiuntivi
+    books = search_books(
+        query=query, 
+        filter_by=filter_by,
+        filter_author=filter_author if filter_author != "Tutti" else "",
+        filter_publisher=filter_publisher if filter_publisher != "Tutti" else "",
+        filter_year=filter_year if filter_year != "Tutti" else ""
+    )
     
     # Debug info
     print(f"Trovati {len(books)} libri")

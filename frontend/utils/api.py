@@ -279,25 +279,30 @@ def refresh_missing_metadata(only_missing=False):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-def search_books(query="", filter_by="all"):
+def search_books(query="", filter_by="all", filter_author="", filter_publisher="", filter_year=""):
     """
     Cerca libri nel database in base a filtri e una query testuale.
     
     Args:
         query: Testo da cercare in titolo, autore, ISBN
         filter_by: Filtro per stato (all, available, loaned)
+        filter_author: Filtro per autore specifico
+        filter_publisher: Filtro per editore specifico
+        filter_year: Filtro per anno di pubblicazione
     """
     headers = get_auth_header()
     
     # Se non ci sono filtri attivi, usa la funzione standard fetch_books
-    # per garantire la retrocompatibilità e evitare problemi
-    if query == "" and filter_by == "all":
+    if query == "" and filter_by == "all" and filter_author == "" and filter_publisher == "" and filter_year == "":
         return fetch_books()
     
     # Altrimenti usa l'endpoint di ricerca specializzato
     params = {
         "query": query,
-        "filter_by": filter_by
+        "filter_by": filter_by,
+        "filter_author": filter_author,
+        "filter_publisher": filter_publisher,
+        "filter_year": filter_year
     }
     
     try:
@@ -310,7 +315,6 @@ def search_books(query="", filter_by="all"):
             return fetch_books()
     except Exception as e:
         print(f"Error connecting to API: {str(e)}")
-        # In caso di eccezione, ritorna alla lista completa
         return fetch_books()
 
 def upload_book_cover(book_id, image_data):

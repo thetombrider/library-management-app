@@ -276,7 +276,8 @@ def refresh_missing_book_metadata(db: Session, owner_id: int = None):
             "failed": total_books
         }
 
-def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "all"):
+def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "all", 
+                filter_author: str = "", filter_publisher: str = "", filter_year: str = ""):
     """
     Cerca libri in base a criteri specifici.
     
@@ -285,6 +286,9 @@ def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "a
         user_id: ID dell'utente corrente
         query: Testo da cercare in titolo, autore, ISBN, etc.
         filter_by: Filtro per stato (all, available, loaned)
+        filter_author: Filtro per autore specifico
+        filter_publisher: Filtro per editore specifico
+        filter_year: Filtro per anno di pubblicazione
     """
     # Base query per libri dell'utente (di proprietà o in prestito)
     # Unisci i libri di proprietà dell'utente con quelli che ha preso in prestito
@@ -335,6 +339,16 @@ def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "a
         ).subquery()
         
         base_query = db.query(Book).filter(Book.id.in_(loaned_books_ids))
+    
+    # Dopo i filtri di stato, applica i filtri aggiuntivi
+    if filter_author:
+        base_query = base_query.filter(Book.author == filter_author)
+    
+    if filter_publisher:
+        base_query = base_query.filter(Book.publisher == filter_publisher)
+    
+    if filter_year:
+        base_query = base_query.filter(Book.publish_year == int(filter_year))
     
     # Applica la ricerca testuale se specificata
     if query:

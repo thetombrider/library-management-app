@@ -198,6 +198,9 @@ def refresh_book_metadata(
 def search_books(
     query: str = "",
     filter_by: str = "all",  # all, available, loaned
+    filter_author: str = "",
+    filter_publisher: str = "",
+    filter_year: str = "",
     current_user: models.User = Depends(crud.user.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -207,13 +210,19 @@ def search_books(
     Args:
         query: Testo da cercare in titolo, autore, ISBN, etc.
         filter_by: Filtro per stato (all, available, loaned)
+        filter_author: Filtro per autore specifico
+        filter_publisher: Filtro per editore specifico
+        filter_year: Filtro per anno di pubblicazione
     """
     # Ottieni i libri dell'utente
     books = crud.book.search_books(
         db=db, 
         user_id=current_user.id, 
         query=query,
-        filter_by=filter_by
+        filter_by=filter_by,
+        filter_author=filter_author,
+        filter_publisher=filter_publisher,
+        filter_year=filter_year
     )
     
     # Aggiungi flag per la copertina
