@@ -256,3 +256,28 @@ def bulk_update_books(
     # Esegui l'aggiornamento
     result = crud.book.bulk_update_books(db, book_ids, updates, current_user.id)
     return result
+
+@router.post("/bulk-delete", status_code=200)
+def bulk_delete_books(
+    delete_data: dict,
+    current_user: models.User = Depends(crud.user.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina in batch più libri.
+    
+    Args:
+        delete_data: Dizionario con book_ids (lista di ID libri)
+    """
+    # Estrai i dati dalla richiesta
+    book_ids = delete_data.get("book_ids", [])
+    
+    if not book_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Richiesta non valida: specificare book_ids"
+        )
+    
+    # Esegui l'eliminazione
+    result = crud.book.bulk_delete_books(db, book_ids, current_user.id)
+    return result

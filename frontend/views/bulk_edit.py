@@ -50,48 +50,51 @@ def show_bulk_edit_page():
     
     if selected_count == 0:
         st.info("Seleziona i libri da modificare nella tabella sopra.")
+        # Bottone per tornare alla griglia
+        if st.button("Torna alla libreria"):
+            set_state("grid")
+            st.rerun()
     else:
         st.success(f"{selected_count} libri selezionati per la modifica.")
         
-        # Sezione per applicare modifiche in batch ai libri selezionati
-        st.subheader("Modifica in batch dei libri selezionati")
+        # Crea una struttura a tab per modificare o eliminare
+        tab1, tab2 = st.tabs(["📝 Modifica metadati", "🗑️ Elimina libri"])
         
-        with st.form("bulk_edit_form"):
-            st.markdown("Seleziona i campi da modificare e inserisci i nuovi valori:")
+        # Tab 1: Modifica metadati (codice esistente)
+        with tab1:
+            st.subheader("Modifica in batch dei libri selezionati")
             
-            # Campo Editore
-            edit_publisher = st.checkbox("Modifica Editore")
-            new_publisher = ""
-            if edit_publisher:
-                new_publisher = st.text_input("Nuovo editore", key="new_publisher")
-            
-            # Campo Autore
-            edit_author = st.checkbox("Modifica Autore")
-            new_author = ""
-            if edit_author:
-                new_author = st.text_input("Nuovo autore", key="new_author")
-            
-            # Campo Anno
-            edit_year = st.checkbox("Modifica Anno")
-            new_year = 0
-            if edit_year:
-                new_year = st.number_input("Nuovo anno", min_value=0, max_value=2100, step=1, key="new_year")
-            
-            # Bottoni
-            col1, col2 = st.columns(2)
-            with col1:
-                cancel = st.form_submit_button("Annulla")
-            with col2:
-                submit = st.form_submit_button("Applica modifiche")
-            
-            if cancel:
-                set_state("grid")
-                st.rerun()
-            
-            if submit:
-                if not (edit_publisher or edit_author or edit_year):
-                    st.error("Seleziona almeno un campo da modificare.")
-                else:
+            with st.form("bulk_edit_form"):
+                # Campo Editore
+                edit_publisher = st.checkbox("Modifica Editore")
+                new_publisher = ""
+                if edit_publisher:
+                    new_publisher = st.text_input("Nuovo editore", key="new_publisher")
+                
+                # Campo Autore
+                edit_author = st.checkbox("Modifica Autore")
+                new_author = ""
+                if edit_author:
+                    new_author = st.text_input("Nuovo autore", key="new_author")
+                
+                # Campo Anno
+                edit_year = st.checkbox("Modifica Anno")
+                new_year = 0
+                if edit_year:
+                    new_year = st.number_input("Nuovo anno", min_value=0, max_value=2100, step=1, key="new_year")
+                
+                # Bottoni
+                col1, col2 = st.columns(2)
+                with col1:
+                    cancel = st.form_submit_button("Annulla")
+                with col2:
+                    submit = st.form_submit_button("Applica modifiche")
+                
+                if cancel:
+                    set_state("grid")
+                    st.rerun()
+                
+                if submit:
                     # Prepara i dati da inviare
                     updated_data = {}
                     if edit_publisher and new_publisher:
@@ -135,5 +138,65 @@ def show_bulk_edit_page():
                                     st.rerun()
                                 else:
                                     st.error(f"Errore durante l'aggiornamento: {response.json().get('detail', 'Errore sconosciuto')}")
+                        except Exception as e:
+                            st.error(f"Errore di connessione: {str(e)}")
+        
+        # Tab 2: Elimina libri (nuova funzionalità)
+        with tab2:
+            st.subheader("Elimina libri selezionati")
+            
+            st.warning(f"⚠️ Stai per eliminare {selected_count} libri. Questa operazione è irreversibile.")
+            
+            # Visualizza i titoli dei libri selezionati
+            if selected_count > 0:
+                st.markdown("### Libri selezionati per l'eliminazione:")
+                for i, book in enumerate(selected_books.itertuples(), 1):
+                    st.markdown(f"{i}. **{book.Titolo}** di {book.Autore}")
+            
+            # Form per conferma eliminazione
+            with st.form("bulk_delete_form"):
+                confirm = st.checkbox("Confermo di voler eliminare i libri selezionati")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    cancel_delete = st.form_submit_button("Annulla")
+                with col2:
+                    submit_delete = st.form_submit_button("Elimina definitivamente")
+                
+                if cancel_delete:
+                    set_state("grid")
+                    st.rerun()
+                
+                if submit_delete:
+                    if not confirm:
+                        st.error("Devi confermare l'eliminazione selezionando la casella.")
+                    else:
+                        # Ottieni la lista di ID dei libri selezionati
+                        book_ids = selected_books["id"].tolist()
+                        
+                        try:
+                            headers = get_auth_header()
+                            
+                            with st.spinner("Eliminazione in corso..."):
+                                response = requests.post(
+                                    f"{API_URL}/books/bulk-delete",
+                                    json={"book_ids": book_ids},
+                                    headers=headers
+                                )
+                                
+                                if response.status_code == 200:
+                                    result = response.json()
+                                    st.success(f"Eliminazione completata: {result['deleted']} libri eliminati")
+                                    
+                                    # Pulisci le cache
+                                    invalidate_caches()
+                                    
+                                    # Torna alla griglia dopo qualche secondo
+                                    import time
+                                    time.sleep(2)
+                                    set_state("grid")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Errore durante l'eliminazione: {response.json().get('detail', 'Errore sconosciuto')}")
                         except Exception as e:
                             st.error(f"Errore di connessione: {str(e)}")

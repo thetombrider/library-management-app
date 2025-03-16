@@ -449,3 +449,89 @@ def bulk_update_books(db: Session, book_ids: List[int], updates: Dict[str, Any],
             "updated": 0,
             "failed": total_books
         }
+
+def bulk_delete_books(db: Session, book_ids: List[int], user_id: int):
+    """
+    Elimina in batch più libri.
+    
+    Args:
+        db: Session del database
+        book_ids: Lista degli ID dei libri da eliminare
+        user_id: ID dell'utente che richiede l'eliminazione
+    
+    Returns:
+        Dict: Risultato dell'operazione
+    """
+    # Contatori per il report
+    total_books = len(book_ids)
+    deleted_books = 0
+    failed_books = 0
+    failed_book_ids = []
+    not_owned_books = 0
+    not_owned_book_ids = []
+    loaned_books = 0
+    loaned_book_ids = []
+    
+    try:
+        # Per ogni libro, verifica proprietà e prestiti attivi prima di cancellare
+        for book_id in book_ids:
+            try:
+                # Recupera il libro
+                book = db.query(Book).filter(Book.id == book_id).first()
+                
+                # Se il libro non esiste, conteggialo come fallito
+                if not book:
+                    failed_books += 1
+                    failed_book_ids.append(book_id)
+                    continue
+                
+                # Verifica che l'utente sia il proprietario
+                if book.owner_id != user_id:
+                    not_owned_books += 1
+                    not_owned_book_ids.append(book_id)
+                    continue
+                
+                # Verifica che non ci siano prestiti attivi
+                active_loans = db.query(Loan).filter(
+                    Loan.book_id == book_id,
+                    (Loan.return_date.is_(None) | (Loan.return_date > datetime.now()))
+                ).count()
+                
+                if active_loans > 0:
+                    loaned_books += 1
+                    loaned_book_ids.append(book_id)
+                    continue
+                
+                # Elimina il libro
+                db.delete(book)
+                deleted_books += 1
+                
+            except Exception as e:
+                failed_books += 1
+                failed_book_ids.append(book_id)
+                print(f"Errore nell'eliminazione del libro {book_id}: {str(e)}")
+        
+        # Commit delle modifiche
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Eliminazione completata: {deleted_books} libri eliminati",
+            "total": total_books,
+            "deleted": deleted_books,
+            "failed": failed_books,
+            "failed_book_ids": failed_book_ids,
+            "not_owned": not_owned_books,
+            "not_owned_book_ids": not_owned_book_ids,
+            "loaned": loaned_books,
+            "loaned_book_ids": loaned_book_ids
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": f"Errore durante l'eliminazione: {str(e)}",
+            "deleted": 0,
+            "failed": total_books
+        }
