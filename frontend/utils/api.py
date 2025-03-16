@@ -7,8 +7,34 @@ import json
 import extra_streamlit_components as stx
 from streamlit_cookies_manager import EncryptedCookieManager
 
-# Usa variabile d'ambiente, con fallback su localhost
-API_URL = os.environ.get("API_URL", "http://localhost:8000")
+# Determina API_URL dinamicamente in base all'ambiente
+def get_api_url():
+    """
+    Determina l'URL di base per le API in base all'ambiente.
+    In un container Docker, usa la variabile d'ambiente API_URL.
+    In locale, rileva l'URL base dalla richiesta attuale.
+    """
+    # Usa la variabile d'ambiente se configurata
+    api_url = os.environ.get("API_URL", "")
+    
+    # Se siamo in Streamlit Cloud o l'URL è vuoto, costruisci l'URL dal contesto
+    if not api_url:
+        # Ottieni l'URL base dalla richiesta attuale
+        try:
+            # Ottieni il server Streamlit corrente
+            server = st.runtime.get_instance()._server_address
+            host = server.split(":")[0]
+            
+            # Usa la porta 8001 per il backend
+            api_url = f"http://{host}:8001"
+        except Exception:
+            # Fallback a localhost:8000
+            api_url = "http://localhost:8000"
+            
+    return api_url
+
+# Usa questa funzione invece di una costante
+API_URL = get_api_url()
 COOKIE_NAME = "book_manager_auth"
 COOKIE_EXPIRY = 30  # giorni
 
