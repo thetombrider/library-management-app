@@ -3,9 +3,87 @@ import streamlit as st
 import requests
 import base64
 import datetime
+import json
+import extra_streamlit_components as stx
+from streamlit_cookies_manager import EncryptedCookieManager
 
 # Usa variabile d'ambiente, con fallback su localhost
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
+COOKIE_NAME = "book_manager_auth"
+COOKIE_EXPIRY = 30  # giorni
+
+# NON usare cache_resource qui, ma definisci la funzione senza decoratore
+_cookie_manager = None
+
+def get_cookie_manager():
+    """Ottiene il cookie manager con un singleton"""
+    global _cookie_manager
+    if _cookie_manager is None:
+        _cookie_manager = stx.CookieManager()
+    return _cookie_manager
+
+def save_auth_to_cookie(token, user_info):
+    """Salva il token di autenticazione in un cookie"""
+    cookie_manager = get_cookie_manager()
+    
+    # Prepara i dati da salvare
+    auth_data = {
+        "token": token,
+        "user_info": user_info,
+        "expiry": (datetime.datetime.now() + datetime.timedelta(days=COOKIE_EXPIRY)).isoformat()
+    }
+    
+    # Converti in JSON
+    auth_json = json.dumps(auth_data)
+    
+    # Imposta il cookie
+    cookie_manager.set(
+        COOKIE_NAME,
+        auth_json,
+        expires_at=datetime.datetime.now() + datetime.timedelta(days=COOKIE_EXPIRY)
+    )
+    
+    # Visualizza lo script per impostare il cookie
+    st.markdown(cookie_manager.get_script(), unsafe_allow_html=True)
+
+def load_auth_from_cookie():
+    """Carica i dati di autenticazione dal cookie"""
+    try:
+        cookie_manager = get_cookie_manager()
+        cookie_value = cookie_manager.get(COOKIE_NAME)
+        
+        if cookie_value:
+            try:
+                auth_data = json.loads(cookie_value)
+                
+                # Verifica se il cookie è scaduto
+                expiry = datetime.datetime.fromisoformat(auth_data["expiry"])
+                if datetime.datetime.now() < expiry:
+                    # Aggiorna lo stato Streamlit con i dati di autenticazione
+                    st.session_state.auth_token = auth_data["token"]
+                    st.session_state.user_info = auth_data["user_info"]
+                    return True
+                else:
+                    # Cookie scaduto, rimuovilo
+                    delete_auth_cookie()
+            except Exception as e:
+                print(f"Errore nel parsing del cookie: {e}")
+                delete_auth_cookie()
+        
+        return False
+    except Exception as e:
+        print(f"Errore nel caricamento del cookie: {e}")
+        return False
+
+def delete_auth_cookie():
+    """Cancella il cookie di autenticazione"""
+    try:
+        cookie_manager = get_cookie_manager()
+        cookie_manager.delete(COOKIE_NAME)
+        # Aggiungi questo per renderizzare lo script che elimina il cookie nel browser
+        st.markdown(cookie_manager.get_script(), unsafe_allow_html=True)
+    except Exception as e:
+        print(f"Errore durante l'eliminazione del cookie: {str(e)}")
 
 def get_auth_header():
     """Ottiene l'header di autenticazione se disponibile"""

@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import json
 from utils.state import set_state
-from utils.api import invalidate_caches, API_URL
+from utils.api import invalidate_caches, API_URL, save_auth_to_cookie, delete_auth_cookie
 
 def show_login_page():
     """Mostra la pagina di login"""
@@ -24,6 +24,8 @@ def show_login_page():
                 st.session_state.pop('user_info', None)
                 st.session_state.pop('auth_expiry', None)
                 invalidate_caches()
+                # Cancella anche il cookie di autenticazione
+                delete_auth_cookie()
                 st.rerun()
         return
     
@@ -31,6 +33,7 @@ def show_login_page():
     with st.form("login_form"):
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
+        remember_me = st.checkbox("Ricordami su questo dispositivo", value=True)
         submit = st.form_submit_button("Accedi")
     
     if submit:
@@ -59,6 +62,10 @@ def show_login_page():
                         # Salva dati autenticazione in session_state
                         st.session_state.auth_token = auth_data["access_token"]
                         st.session_state.user_info = auth_data["user"]
+                        
+                        # Salva nei cookie se richiesto
+                        if remember_me:
+                            save_auth_to_cookie(auth_data["access_token"], auth_data["user"])
                         
                         # Pulisci cache API
                         invalidate_caches()

@@ -15,4 +15,6 @@ email-validator
 
 #frontend
 streamlit
+extra-streamlit-components
+streamlit-cookies-manager
 

@@ -1,6 +1,14 @@
 import streamlit as st
+
+# Configurazione pagina DEVE essere la prima chiamata Streamlit
+st.set_page_config(
+    page_title="Biblioteca",
+    layout="wide"
+)
+
+# Ora importa tutto il resto
 from utils.state import initialize_state
-from utils.api import invalidate_caches, check_auth_status, is_admin
+from utils.api import invalidate_caches, check_auth_status, is_admin, load_auth_from_cookie
 from utils.export import export_all_data
 from views.book_grid import show_book_grid
 from views.book_detail import show_book_detail
@@ -13,14 +21,12 @@ from views.register import show_register_page
 from static.styles import load_css
 from static.scripts import load_scripts
 
-# Configurazione pagina
-st.set_page_config(
-    page_title="Biblioteca",
-    layout="wide"
-)
-
 # Inizializza lo state
 initialize_state()
+
+# Carica l'autenticazione dai cookie se necessario
+if 'auth_token' not in st.session_state or not st.session_state.auth_token:
+    load_auth_from_cookie()
 
 # Verifica se l'utente è autenticato
 is_authenticated = check_auth_status()
@@ -70,9 +76,13 @@ with st.sidebar:
         # Sezione Account
         st.subheader("Account")
         if st.sidebar.button("🚪 Logout", use_container_width=True):
-            # Rimuovi i dati di autenticazione
+            # Rimuovi i dati di autenticazione da session_state
             st.session_state.pop('auth_token', None)
             st.session_state.pop('user_info', None)
+            # Elimina anche il cookie di autenticazione
+            from utils.api import delete_auth_cookie
+            delete_auth_cookie()
+            # Imposta la vista su login e ricarica la pagina
             st.session_state.view = 'login'
             invalidate_caches()
             st.rerun()
