@@ -5,13 +5,11 @@ services:
     image: thetombrider/library-app:latest
     container_name: library-app
     ports:
-      - "8001:8000"
       - "8501:8501"
     volumes:
       - library-db:/data
     environment:
       - DATABASE_URL=sqlite:////data/books.db
-      - API_URL=http://100.73.156.78:8001
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
