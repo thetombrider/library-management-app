@@ -54,21 +54,28 @@ with st.sidebar:
         if st.sidebar.button("🔄 Aggiorna Metadati Libri", use_container_width=True):
             from utils.api import refresh_missing_metadata
             
-            with st.sidebar.spinner("Aggiornamento in corso..."):
-                result = refresh_missing_metadata()
+            # Usa un placeholder nella sidebar invece dello spinner
+            status_placeholder = st.sidebar.empty()
+            status_placeholder.info("Aggiornamento in corso...")
+            
+            # Esegui l'operazione - passando False per aggiornare TUTTI i libri dell'utente
+            result = refresh_missing_metadata(only_missing=False)
+            
+            # Sostituisci il messaggio con il risultato
+            status_placeholder.empty()
+            
+            if result["success"]:
+                data = result["data"]
+                st.sidebar.success(f"Aggiornamento completato: {data['updated']} libri aggiornati, {data['failed']} non aggiornati")
                 
-                if result["success"]:
-                    data = result["data"]
-                    st.sidebar.success(f"Aggiornamento completato: {data['updated']} libri aggiornati, {data['failed']} non aggiornati")
-                    
-                    # Aggiungi pulsante per visualizzare dettagli
-                    if st.sidebar.button("Vedi dettagli", key="show_metadata_details"):
-                        st.session_state.metadata_update_result = data
-                        st.session_state.view = 'grid'  # Resta nella vista grid ma mostrerà i dettagli
-                        invalidate_caches()
-                        st.rerun()
-                else:
-                    st.sidebar.error(f"Errore: {result['error']}")
+                # Aggiungi pulsante per visualizzare dettagli
+                if st.sidebar.button("Vedi dettagli", key="show_metadata_details"):
+                    st.session_state.metadata_update_result = data
+                    st.session_state.view = 'grid'  # Resta nella vista grid ma mostrerà i dettagli
+                    invalidate_caches()
+                    st.rerun()
+            else:
+                st.sidebar.error(f"Errore: {result['error']}")
         
         # Gestione utenti - spostato qui per renderlo visibile a tutti
         st.subheader("Gestione")

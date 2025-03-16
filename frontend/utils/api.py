@@ -223,11 +223,22 @@ def is_admin():
         return st.session_state.user_info.get('role') == 'admin'
     return False
 
-def refresh_missing_metadata():
-    """Richiede l'aggiornamento dei metadati per libri con informazioni mancanti"""
+def refresh_missing_metadata(only_missing=False):
+    """
+    Richiede l'aggiornamento dei metadati per libri.
+    
+    Args:
+        only_missing: Se True, aggiorna solo libri con informazioni mancanti
+                     Se False, aggiorna tutti i libri di proprietà dell'utente
+    """
     headers = get_auth_header()
     try:
-        response = requests.post(f"{API_URL}/books/refresh-metadata", headers=headers)
+        params = {"only_missing": "true" if only_missing else "false"}
+        response = requests.post(
+            f"{API_URL}/books/refresh-metadata", 
+            headers=headers,
+            params=params
+        )
         
         if response.status_code == 200:
             return {"success": True, "data": response.json()}

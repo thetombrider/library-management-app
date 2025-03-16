@@ -122,14 +122,19 @@ def update_book(book_id: int, book: schemas.BookUpdate, db: Session = Depends(ge
 @router.post("/refresh-metadata", status_code=200)
 def refresh_book_metadata(
     current_user: models.User = Depends(crud.user.get_current_user),
+    only_missing: bool = False,
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint per aggiornare i metadati dei libri con informazioni mancanti.
-    Accessibile a tutti gli utenti autenticati.
+    Endpoint per aggiornare i metadati dei libri.
+    
+    Args:
+        only_missing: Se True, aggiorna solo i libri con informazioni mancanti,
+                      altrimenti aggiorna tutti i libri dell'utente corrente
     """
-    # Il controllo del ruolo admin è stato rimosso
+    # Se only_missing è True, non passiamo l'owner_id per filtrare solo libri con info mancanti
+    owner_id = None if only_missing else current_user.id
     
     # Esegui l'aggiornamento dei metadati
-    result = crud.book.refresh_missing_book_metadata(db)
+    result = crud.book.refresh_missing_book_metadata(db, owner_id=owner_id)
     return result

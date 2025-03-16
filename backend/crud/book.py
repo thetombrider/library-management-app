@@ -121,29 +121,49 @@ def delete_book(db: Session, book_id: int):
             detail=f"Database error: {str(e)}"
         )
 
-def refresh_missing_book_metadata(db: Session):
+def refresh_missing_book_metadata(db: Session, owner_id: int = None):
     """
-    Cerca libri con informazioni mancanti e tenta di recuperarle nuovamente dalle API esterne.
-    Ritorna un report dei libri aggiornati e quelli che restano incompleti.
-    """
-    # Cerca libri con titolo mancante o autore sconosciuto
-    missing_info_books = db.query(Book).filter(
-        (Book.title == "Titolo mancante") | 
-        (Book.author == "Autore sconosciuto")
-    ).all()
+    Cerca libri con informazioni mancanti o di proprietà dell'utente specificato
+    e tenta di recuperarle nuovamente dalle API esterne.
     
-    if not missing_info_books:
-        return {"status": "success", "message": "Nessun libro con informazioni mancanti trovato", "updated": 0, "failed": 0}
+    Args:
+        db: Sessione del database
+        owner_id: Se specificato, aggiorna tutti i libri di proprietà dell'utente specificato
+    """
+    # Costruisci la query di base
+    query = db.query(Book)
+    
+    if owner_id:
+        # Se è specificato un owner_id, aggiorna tutti i libri di quell'utente
+        query = query.filter(Book.owner_id == owner_id)
+    else:
+        # Altrimenti, cerca solo i libri con informazioni mancanti
+        query = query.filter(
+            (Book.title == "Titolo mancante") | 
+            (Book.author == "Autore sconosciuto")
+        )
+    
+    # Esegui la query
+    books_to_update = query.all()
+    
+    if not books_to_update:
+        return {
+            "status": "success", 
+            "message": "Nessun libro da aggiornare trovato", 
+            "updated": 0, 
+            "failed": 0,
+            "total": 0
+        }
     
     # Contatori per il report
-    total_books = len(missing_info_books)
+    total_books = len(books_to_update)
     updated_books = 0
     failed_books = 0
     updated_book_details = []
     failed_book_details = []
     
     # Prova a recuperare informazioni per ogni libro
-    for book in missing_info_books:
+    for book in books_to_update:
         if not book.isbn:
             # Se non c'è ISBN, non possiamo recuperare nulla
             failed_books += 1
@@ -155,31 +175,32 @@ def refresh_missing_book_metadata(db: Session):
             })
             continue
         
-        # Tenta di recuperare i metadati usando entrambe le API
+        # Tenta di recuperare i metadati usando le API
         metadata = fetch_book_metadata(book.isbn)
         
         if metadata and (metadata.get('title') or metadata.get('author')):
-            # Aggiorna solo i campi mancanti
+            # Aggiorna i campi disponibili
             updated_fields = []
             
-            if book.title == "Titolo mancante" and metadata.get('title'):
+            # Aggiorna i campi principali solo se mancanti o generici
+            if (book.title == "Titolo mancante" or owner_id) and metadata.get('title'):
                 book.title = metadata.get('title')
                 updated_fields.append("title")
                 
-            if book.author == "Autore sconosciuto" and metadata.get('author'):
+            if (book.author == "Autore sconosciuto" or owner_id) and metadata.get('author'):
                 book.author = metadata.get('author')
                 updated_fields.append("author")
                 
             # Aggiorna altri campi utili se disponibili
-            if not book.description and metadata.get('description'):
+            if (not book.description or owner_id) and metadata.get('description'):
                 book.description = metadata.get('description')
                 updated_fields.append("description")
                 
-            if not book.publisher and metadata.get('publisher'):
+            if (not book.publisher or owner_id) and metadata.get('publisher'):
                 book.publisher = metadata.get('publisher')
                 updated_fields.append("publisher")
                 
-            if not book.publish_year and metadata.get('publish_year'):
+            if (not book.publish_year or owner_id) and metadata.get('publish_year'):
                 book.publish_year = metadata.get('publish_year')
                 updated_fields.append("publish_year")
                 
