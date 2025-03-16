@@ -76,16 +76,17 @@ with st.sidebar:
             st.session_state.view = 'manage_users'
             st.rerun()
         
+        # Sostituisci la parte dell'esportazione con questa versione semplificata
         # Sposta qui la sezione esportazione per renderla accessibile a tutti
-        if st.sidebar.button("📊 Esporta Dati (CSV)", use_container_width=True):
-            # Genera il file ZIP con i CSV
-            zip_data = export_all_data()
+        if st.sidebar.button("📊 Esporta dati", use_container_width=True):
+            # Genera il file ZIP solo con i libri di proprietà dell'utente
+            zip_data = export_all_data(only_owned_books=True)
             
             # Crea un link per il download
             st.sidebar.download_button(
                 label="📥 Scarica dati (ZIP)",
                 data=zip_data,
-                file_name="biblioteca_export.zip",
+                file_name="miei_libri_export.zip",
                 mime="application/zip",
                 use_container_width=True
             )
