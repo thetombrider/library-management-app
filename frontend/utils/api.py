@@ -10,31 +10,23 @@ from streamlit_cookies_manager import EncryptedCookieManager
 # Determina API_URL dinamicamente in base all'ambiente
 def get_api_url():
     """
-    Determina l'URL di base per le API in base all'ambiente.
-    In un container Docker, usa la variabile d'ambiente API_URL.
-    In locale, rileva l'URL base dalla richiesta attuale.
+    Determina l'URL dell'API in base al contesto di esecuzione.
+    Se accessibile tramite URL diverso da localhost, usa quello invece.
     """
-    # Usa la variabile d'ambiente se configurata
-    api_url = os.environ.get("API_URL", "")
     
-    # Se siamo in Streamlit Cloud o l'URL è vuoto, costruisci l'URL dal contesto
-    if not api_url:
-        # Ottieni l'URL base dalla richiesta attuale
-        try:
-            # Ottieni il server Streamlit corrente
-            server = st.runtime.get_instance()._server_address
-            host = server.split(":")[0]
-            
-            # Usa la porta 8001 per il backend
-            api_url = f"http://{host}:8001"
-        except Exception:
-            # Fallback a localhost:8000
-            api_url = "http://localhost:8000"
-            
-    return api_url
+    # Usa la variabile d'ambiente se disponibile
+    api_url = os.environ.get("API_URL")
+    if api_url:
+        print(f"Usando API_URL da variabile d'ambiente: {api_url}")
+        return api_url
+    
+    # Fallback a localhost:8000
+    return "http://localhost:8000"
 
-# Usa questa funzione invece di una costante
+# Usa questa funzione all'inizio del file
 API_URL = get_api_url()
+print(f"API configurata su: {API_URL}")
+
 COOKIE_NAME = "book_manager_auth"
 COOKIE_EXPIRY = 30  # giorni
 

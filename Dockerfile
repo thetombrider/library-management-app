@@ -26,7 +26,7 @@ COPY . .
 # Configura variabili d'ambiente
 ENV DATABASE_URL="sqlite:////data/books.db" 
 ENV SECRET_KEY="09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ENV API_URL="http://localhost:8000"
+ENV API_URL="http://100.73.156.78:8001"
 ENV PYTHONUNBUFFERED=1
 ENV STREAMLIT_SERVER_HEADLESS=true
 
