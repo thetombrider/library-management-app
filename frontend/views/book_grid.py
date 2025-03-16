@@ -133,6 +133,14 @@ def show_book_grid():
                 st.session_state.filter_year = "Tutti"
                 st.rerun()
     
+    # Seconda riga di azioni
+    col1, col2, col3 = st.columns(3)
+
+    with col3:
+        if st.button("✏️ Modifica in batch", use_container_width=True):
+            set_state("bulk_edit")
+            st.rerun()
+    
     # Recupera i libri in base ai filtri
     query = st.session_state.get("search_query", "")
     filter_by = st.session_state.get("filter_by", "all")

@@ -21,6 +21,7 @@ from views.register import show_register_page
 from static.styles import load_css
 from static.scripts import load_scripts
 from utils.api import get_cookie_manager
+from views.bulk_edit import show_bulk_edit_page
 
 # Inizializza lo state
 initialize_state()
@@ -158,7 +159,8 @@ elif st.session_state.view == 'edit_book':
     show_edit_book_page()
 elif st.session_state.view == 'manage_users':
     show_manage_users_page()
-
+elif st.session_state.view == 'bulk_edit':
+    show_bulk_edit_page()
 
 # Carica stili CSS e scripts
 load_css()

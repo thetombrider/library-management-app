@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from backend import crud, models, schemas
 from backend.database import get_db
 from sqlalchemy import or_
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime
 from PIL import Image
 import io
@@ -230,3 +230,29 @@ def search_books(
         setattr(book, "has_cover", book.cover_image is not None)
     
     return books
+
+@router.post("/bulk-update", status_code=200)
+def bulk_update_books(
+    update_data: dict,
+    current_user: models.User = Depends(crud.user.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Aggiorna in batch i metadati di più libri.
+    
+    Args:
+        update_data: Dizionario con book_ids (lista di ID libri) e updates (campi da aggiornare)
+    """
+    # Estrai i dati dalla richiesta
+    book_ids = update_data.get("book_ids", [])
+    updates = update_data.get("updates", {})
+    
+    if not book_ids or not updates:
+        raise HTTPException(
+            status_code=400,
+            detail="Richiesta non valida: specificare book_ids e updates"
+        )
+    
+    # Esegui l'aggiornamento
+    result = crud.book.bulk_update_books(db, book_ids, updates, current_user.id)
+    return result

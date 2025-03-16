@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from typing import List, Dict, Any
 from backend.models.book import Book
 from backend.models.loan import Loan
 from backend.schemas.book import BookCreate, BookUpdate, BookDelete
@@ -365,3 +366,86 @@ def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "a
     
     # Esegui la query e ritorna i risultati
     return base_query.all()
+
+def bulk_update_books(db: Session, book_ids: List[int], updates: Dict[str, Any], user_id: int):
+    """
+    Aggiorna in batch i metadati di più libri.
+    
+    Args:
+        db: Session del database
+        book_ids: Lista degli ID dei libri da aggiornare
+        updates: Dizionario con i campi da aggiornare
+        user_id: ID dell'utente che richiede l'aggiornamento
+    
+    Returns:
+        Dict: Risultato dell'operazione
+    """
+    # Contatori per il report
+    total_books = len(book_ids)
+    updated_books = 0
+    failed_books = 0
+    failed_book_ids = []
+    
+    # Verifica che ci siano campi validi da aggiornare
+    valid_fields = ["title", "author", "description", "publisher", "publish_year"]
+    update_fields = {k: v for k, v in updates.items() if k in valid_fields}
+    
+    if not update_fields:
+        return {
+            "status": "error",
+            "message": "Nessun campo valido da aggiornare",
+            "updated": 0,
+            "failed": total_books
+        }
+    
+    # Recupera i libri da aggiornare
+    try:
+        # Query per selezionare i libri dell'utente
+        books = db.query(Book).filter(
+            Book.id.in_(book_ids),
+            Book.owner_id == user_id
+        ).all()
+        
+        # Verifica che tutti i libri richiesti siano stati trovati
+        if len(books) < total_books:
+            return {
+                "status": "warning",
+                "message": "Alcuni libri non sono stati trovati o non appartengono all'utente",
+                "updated": 0,
+                "failed": total_books,
+                "books_found": len(books)
+            }
+        
+        # Aggiorna ogni libro
+        for book in books:
+            try:
+                # Applica gli aggiornamenti
+                for field, value in update_fields.items():
+                    setattr(book, field, value)
+                
+                updated_books += 1
+            except Exception as e:
+                failed_books += 1
+                failed_book_ids.append(book.id)
+                print(f"Errore nell'aggiornamento del libro {book.id}: {str(e)}")
+        
+        # Commit delle modifiche
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Aggiornamento completato: {updated_books} libri aggiornati",
+            "total": total_books,
+            "updated": updated_books,
+            "failed": failed_books,
+            "failed_book_ids": failed_book_ids
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": f"Errore durante l'aggiornamento: {str(e)}",
+            "updated": 0,
+            "failed": total_books
+        }
