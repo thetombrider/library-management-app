@@ -32,11 +32,11 @@ def create_book(db: Session, book: BookCreate):
             detail="Hai già un libro con lo stesso ISBN o titolo nella tua libreria"
         )
     
-    # If ISBN is provided, try to fetch metadata from Google Books API
+    # If ISBN is provided, try to fetch metadata from multiple APIs with fallback
     if book.isbn:
         metadata = fetch_book_metadata(book.isbn)
         if metadata:
-            # Update book data with metadata from Google Books
+            # Update book data with metadata
             book_data = book.model_dump()
             book_data.update(metadata)
             
@@ -46,13 +46,26 @@ def create_book(db: Session, book: BookCreate):
             if has_cover:
                 print(f"Cover image size: {len(metadata['cover_image'])} bytes")
             
+            # Verifica che i campi essenziali non siano vuoti
+            if not book_data.get('title'):
+                book_data['title'] = "Titolo non disponibile"
+            if not book_data.get('author'):
+                book_data['author'] = "Autore sconosciuto"
+                
             db_book = Book(**book_data)
             
             # Verifica dopo la creazione dell'oggetto
             print(f"Book object has cover: {db_book.cover_image is not None}")
         else:
-            # If no metadata found, use the provided data
-            db_book = Book(**book.model_dump())
+            # If no metadata found from any API, use the provided data
+            # Aggiungi titolo e autore predefiniti se non disponibili
+            book_data = book.model_dump()
+            if not book_data.get('title'):
+                book_data['title'] = "Titolo mancante"
+            if not book_data.get('author'):
+                book_data['author'] = "Autore sconosciuto"
+                
+            db_book = Book(**book_data)
     else:
         # No ISBN provided, use the provided data
         db_book = Book(**book.model_dump())
