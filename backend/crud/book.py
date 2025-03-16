@@ -14,6 +14,22 @@ def get_books(db: Session, skip: int = 0, limit: int = 10):
         setattr(book, "has_cover", book.cover_image is not None)
     return books
 
+def get_book(db: Session, book_id: int):
+    """
+    Ottiene un libro specifico dal database tramite ID.
+    
+    Args:
+        db: Session del database
+        book_id: ID del libro da recuperare
+        
+    Returns:
+        Il libro richiesto o None se non trovato
+    """
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if book:
+        setattr(book, "has_cover", book.cover_image is not None)
+    return book
+
 def create_book(db: Session, book: BookCreate):
     # Check per duplicati solo tra i libri dello stesso proprietario
     owner_id = book.owner_id

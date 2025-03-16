@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, File, UploadFile
 from sqlalchemy.orm import Session
 from backend import crud, models, schemas
 from backend.database import get_db
 from sqlalchemy import or_
 from typing import List
 from datetime import datetime
+from PIL import Image
+import io
 
 router = APIRouter()
 
@@ -102,6 +104,59 @@ def get_book_cover(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Nessuna copertina disponibile")
     
     return Response(content=db_book.cover_image, media_type="image/jpeg")
+
+@router.post("/{book_id}/cover", status_code=200)
+def upload_book_cover(
+    book_id: int,
+    cover: UploadFile = File(...),
+    current_user: models.User = Depends(crud.user.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Carica una copertina personalizzata per un libro"""
+    # Verifica che il libro esista
+    book = crud.book.get_book(db, book_id=book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    
+    # Verifica che l'utente sia il proprietario del libro
+    if book.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Non sei autorizzato a modificare questo libro")
+    
+    try:
+        # Leggi il contenuto del file
+        contents = cover.file.read()
+        
+        # Verifica che sia un'immagine
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(contents))
+            
+            # Ridimensiona e comprimi l'immagine
+            max_size = (300, 300)
+            quality = 75
+            
+            # Converti in RGB se necessario
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            
+            # Ridimensiona mantenendo proporzioni
+            img.thumbnail(max_size)
+            
+            # Comprimi l'immagine
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+            compressed_image = buffer.getvalue()
+            
+            # Aggiorna la copertina nel database
+            book.cover_image = compressed_image
+            db.commit()
+            
+            return {"message": "Copertina caricata con successo"}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Il file non è un'immagine valida: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Si è verificato un errore: {str(e)}")
 
 @router.get("/{book_id}", response_model=schemas.Book)
 def read_book(book_id: int, db: Session = Depends(get_db)):

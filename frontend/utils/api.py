@@ -294,3 +294,37 @@ def search_books(query="", filter_by="all"):
         print(f"Error connecting to API: {str(e)}")
         # In caso di eccezione, ritorna alla lista completa
         return fetch_books()
+
+def upload_book_cover(book_id, image_data):
+    """
+    Carica una copertina personalizzata per un libro
+    
+    Args:
+        book_id: ID del libro
+        image_data: Dati binari dell'immagine
+        
+    Returns:
+        dict: Risultato dell'operazione
+    """
+    headers = get_auth_header()
+    
+    # Non includiamo il Content-Type in headers perché requests lo imposterà automaticamente
+    try:
+        # Prepara i file da caricare (file binario)
+        files = {'cover': ('cover.jpg', image_data, 'image/jpeg')}
+        
+        response = requests.post(
+            f"{API_URL}/books/{book_id}/cover",
+            headers=headers,
+            files=files
+        )
+        
+        if response.status_code == 200:
+            # Pulisci la cache delle copertine
+            get_book_cover.clear()
+            return {"success": True}
+        else:
+            error_detail = response.json().get("detail", "Errore sconosciuto")
+            return {"success": False, "error": error_detail}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

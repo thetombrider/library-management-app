@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from utils.api import fetch_book, get_book_cover_url, fetch_users, invalidate_caches, get_user_name
+from utils.api import fetch_book, get_book_cover_url, fetch_users, invalidate_caches, get_user_name, upload_book_cover
 from utils.state import set_state
 from components.ui import render_book_cover
 
@@ -24,6 +24,30 @@ def show_edit_book_page():
     with col1:
         render_book_cover(book, width=150)
         st.caption("Copertina attuale")
+        
+        # Aggiungi la sezione per caricare una nuova copertina
+        st.markdown("### Carica nuova copertina")
+        st.caption("Carica un'immagine JPG o PNG per personalizzare la copertina")
+        
+        uploaded_file = st.file_uploader("Scegli un'immagine...", type=["jpg", "jpeg", "png"])
+        
+        if uploaded_file is not None:
+            # Mostra l'anteprima dell'immagine
+            image_preview = uploaded_file.getvalue()
+            st.image(image_preview, width=150, caption="Anteprima")
+            
+            if st.button("Carica questa copertina"):
+                
+                with st.spinner("Caricamento in corso..."):
+                    result = upload_book_cover(book_id, image_preview)
+                    
+                    if result["success"]:
+                        st.success("Copertina caricata con successo!")
+                        # Forza l'aggiornamento della cache e ricarica la pagina
+                        invalidate_caches()
+                        st.rerun()
+                    else:
+                        st.error(f"Errore nel caricamento: {result.get('error', 'Errore sconosciuto')}")
     
     with col2:
         with st.form("edit_book_form"):
