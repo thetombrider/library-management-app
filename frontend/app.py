@@ -134,7 +134,7 @@ with st.sidebar:
     
     # Info
     st.markdown("---")
-    st.caption("© 2023 Tommaso Minuto - v1.4")
+    st.caption("© 2023 Tommaso Minuto - v1.6")
 
 # Header del contenuto principale
 st.title("Book Manager")
