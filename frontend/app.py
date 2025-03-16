@@ -20,6 +20,7 @@ from views.login import show_login_page
 from views.register import show_register_page
 from static.styles import load_css
 from static.scripts import load_scripts
+from utils.api import get_cookie_manager
 
 # Inizializza lo state
 initialize_state()
