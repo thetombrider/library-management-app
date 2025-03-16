@@ -1,6 +1,6 @@
 import streamlit as st
 import math
-from utils.api import fetch_books, get_book_cover_url, get_user_name, get_current_user_id
+from utils.api import fetch_books, get_book_cover_url, get_user_name, get_current_user_id, search_books
 from utils.state import set_state
 from components.book_card import render_book_card
 
@@ -38,16 +38,72 @@ def show_book_grid():
     
     st.subheader("La mia libreria")
     
-    current_user_id = get_current_user_id()
-    books = fetch_books()
+    # Aggiungi barra di ricerca e filtri
+    col1, col2, col3 = st.columns([3, 1, 1])
+    
+    with col1:
+        # Carica il valore precedente della query se presente
+        previous_query = st.session_state.get("search_query", "")
+        search_query = st.text_input("🔍 Cerca per titolo, autore, ISBN...", value=previous_query)
+        if search_query != previous_query:
+            st.session_state.search_query = search_query
+            # Resetta il filtro quando cambia la query
+            st.session_state.filter_by = "all"
+    
+    with col2:
+        filter_options = {
+            "all": "Tutti i libri",
+            "available": "Disponibili",
+            "loaned": "In prestito"
+        }
+        # Carica il valore precedente del filtro se presente
+        previous_filter = st.session_state.get("filter_by", "all")
+        filter_by = st.selectbox("Filtro:", options=list(filter_options.keys()), 
+                                format_func=lambda x: filter_options[x],
+                                index=list(filter_options.keys()).index(previous_filter))
+        if filter_by != previous_filter:
+            st.session_state.filter_by = filter_by
+    
+    with col3:
+        # Bottone per pulire i filtri
+        if st.button("🔄 Azzera filtri", use_container_width=True):
+            st.session_state.search_query = ""
+            st.session_state.filter_by = "all"
+            st.rerun()
+    
+    # Recupera i libri in base ai filtri
+    query = st.session_state.get("search_query", "")
+    filter_by = st.session_state.get("filter_by", "all")
+    
+    # Debug info
+    print(f"Ricerca libri con query='{query}', filter_by='{filter_by}'")
+    
+    # Usa la funzione search_books
+    books = search_books(query=query, filter_by=filter_by)
+    
+    # Debug info
+    print(f"Trovati {len(books)} libri")
     
     if not books:
-        st.info("Non hai ancora libri nella tua libreria. Aggiungi un nuovo libro usando il pulsante 'Aggiungi Libro'.")
+        if query or filter_by != "all":
+            st.info("Nessun libro trovato con i criteri di ricerca specificati.")
+        else:
+            st.info("Non hai ancora libri nella tua libreria. Aggiungi un nuovo libro usando il pulsante 'Aggiungi Libro'.")
+            
+            # Debug aggiuntivo
+            from utils.api import invalidate_caches
+            st.button("🔄 Ricarica dati", on_click=invalidate_caches)
         return
+    
+    # Resto del codice esistente per mostrare i libri...
+    current_user_id = get_current_user_id()
     
     # Separa i libri di proprietà da quelli presi in prestito
     owned_books = [book for book in books if book.get('owner_id') == current_user_id]
     borrowed_books = [book for book in books if book.get('owner_id') != current_user_id]
+    
+    # Mostra i conteggi dei risultati
+    st.markdown(f"**{len(books)} libri trovati** ({len(owned_books)} di tua proprietà, {len(borrowed_books)} presi in prestito)")
     
     # Mostra prima i libri di proprietà
     if owned_books:

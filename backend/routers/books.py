@@ -138,3 +138,31 @@ def refresh_book_metadata(
     # Esegui l'aggiornamento dei metadati
     result = crud.book.refresh_missing_book_metadata(db, owner_id=owner_id)
     return result
+
+@router.get("/search/", response_model=list[schemas.Book])
+def search_books(
+    query: str = "",
+    filter_by: str = "all",  # all, available, loaned
+    current_user: models.User = Depends(crud.user.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cerca libri nel database in base a filtri e una query testuale.
+    
+    Args:
+        query: Testo da cercare in titolo, autore, ISBN, etc.
+        filter_by: Filtro per stato (all, available, loaned)
+    """
+    # Ottieni i libri dell'utente
+    books = crud.book.search_books(
+        db=db, 
+        user_id=current_user.id, 
+        query=query,
+        filter_by=filter_by
+    )
+    
+    # Aggiungi flag per la copertina
+    for book in books:
+        setattr(book, "has_cover", book.cover_image is not None)
+    
+    return books

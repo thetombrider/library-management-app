@@ -18,7 +18,7 @@ _cookie_manager = None
 def get_cookie_manager():
     """Ottiene il cookie manager con un singleton"""
     global _cookie_manager
-    if _cookie_manager is None:
+    if (_cookie_manager is None):
         _cookie_manager = stx.CookieManager()
     return _cookie_manager
 
@@ -91,12 +91,24 @@ def get_auth_header():
         return {"Authorization": f"Bearer {st.session_state.auth_token}"}
     return {}
 
-@st.cache_data(ttl=300)
+# Modifica la decorazione della funzione per controllare problemi di cache
+@st.cache_data(ttl=60)  # Ridotta a 1 minuto per debug
 def fetch_books():
-    """Ottiene la lista dei libri con cache TTL di 5 minuti"""
+    """Ottiene la lista dei libri con cache TTL di 1 minuto"""
     headers = get_auth_header()
-    response = requests.get(f"{API_URL}/books/", headers=headers)
-    return response.json() if response.status_code == 200 else []
+    try:
+        response = requests.get(f"{API_URL}/books/", headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            # Aggiungi debug info
+            print(f"fetch_books: ricevuti {len(data)} libri")
+            return data
+        else:
+            print(f"Error fetching books: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"Error connecting to API: {str(e)}")
+        return []
 
 @st.cache_data(ttl=300)
 def fetch_book(book_id):
@@ -247,3 +259,37 @@ def refresh_missing_metadata(only_missing=False):
             return {"success": False, "error": error_detail}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def search_books(query="", filter_by="all"):
+    """
+    Cerca libri nel database in base a filtri e una query testuale.
+    
+    Args:
+        query: Testo da cercare in titolo, autore, ISBN
+        filter_by: Filtro per stato (all, available, loaned)
+    """
+    headers = get_auth_header()
+    
+    # Se non ci sono filtri attivi, usa la funzione standard fetch_books
+    # per garantire la retrocompatibilità e evitare problemi
+    if query == "" and filter_by == "all":
+        return fetch_books()
+    
+    # Altrimenti usa l'endpoint di ricerca specializzato
+    params = {
+        "query": query,
+        "filter_by": filter_by
+    }
+    
+    try:
+        response = requests.get(f"{API_URL}/books/search/", headers=headers, params=params)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error searching books: {response.status_code}")
+            # In caso di errore, ritorna alla lista completa
+            return fetch_books()
+    except Exception as e:
+        print(f"Error connecting to API: {str(e)}")
+        # In caso di eccezione, ritorna alla lista completa
+        return fetch_books()

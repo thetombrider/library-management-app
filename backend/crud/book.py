@@ -5,6 +5,7 @@ from backend.schemas.book import BookCreate, BookUpdate, BookDelete
 from fastapi import HTTPException, status
 from backend.services.google_books import fetch_book_metadata
 from datetime import datetime
+from sqlalchemy import or_, and_  # Aggiungi questa riga per importare gli operatori necessari
 
 def get_books(db: Session, skip: int = 0, limit: int = 10):
     books = db.query(Book).offset(skip).limit(limit).all()
@@ -258,3 +259,79 @@ def refresh_missing_book_metadata(db: Session, owner_id: int = None):
             "updated": 0,
             "failed": total_books
         }
+
+def search_books(db: Session, user_id: int, query: str = "", filter_by: str = "all"):
+    """
+    Cerca libri in base a criteri specifici.
+    
+    Args:
+        db: Session del database
+        user_id: ID dell'utente corrente
+        query: Testo da cercare in titolo, autore, ISBN, etc.
+        filter_by: Filtro per stato (all, available, loaned)
+    """
+    # Base query per libri dell'utente (di proprietà o in prestito)
+    # Unisci i libri di proprietà dell'utente con quelli che ha preso in prestito
+    owned_books = db.query(Book).filter(Book.owner_id == user_id)
+    
+    borrowed_books = db.query(Book).join(
+        Loan, Book.id == Loan.book_id
+    ).filter(
+        Loan.user_id == user_id,
+        Book.owner_id != user_id,
+        or_(
+            Loan.return_date == None,
+            Loan.return_date > datetime.now()
+        )
+    )
+    
+    # Combina le due query
+    base_query = owned_books.union(borrowed_books)
+    
+    # Applica filtro di stato
+    if filter_by == "available":
+        # Libri disponibili (di proprietà e non prestati)
+        available_books_ids = db.query(Book.id).outerjoin(
+            Loan, and_(
+                Book.id == Loan.book_id,
+                or_(
+                    Loan.return_date == None,
+                    Loan.return_date > datetime.now()
+                )
+            )
+        ).filter(
+            Book.owner_id == user_id,
+            Loan.id == None  # Nessun prestito attivo
+        ).subquery()
+        
+        base_query = db.query(Book).filter(Book.id.in_(available_books_ids))
+    
+    elif filter_by == "loaned":
+        # Libri attualmente in prestito (dell'utente)
+        loaned_books_ids = db.query(Book.id).join(
+            Loan, Book.id == Loan.book_id
+        ).filter(
+            Book.owner_id == user_id,
+            or_(
+                Loan.return_date == None,
+                Loan.return_date > datetime.now()
+            )
+        ).subquery()
+        
+        base_query = db.query(Book).filter(Book.id.in_(loaned_books_ids))
+    
+    # Applica la ricerca testuale se specificata
+    if query:
+        search_term = f"%{query}%"
+        base_query = base_query.filter(
+            or_(
+                Book.title.ilike(search_term),
+                Book.author.ilike(search_term),
+                Book.isbn.ilike(search_term),
+                Book.publisher.ilike(search_term),
+                Book.description.ilike(search_term)
+            )
+        )
+    
+    # Esegui la query e ritorna i risultati
+    return base_query.all()
