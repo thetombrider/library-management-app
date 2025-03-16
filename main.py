@@ -1,12 +1,12 @@
 import os
 from fastapi import FastAPI
 from backend.routers import books_router, loans_router, users_router, auth_router
-from init_db import init_db
+from init_db import init_database  # Modifica qui: init_db -> init_database
 
 # Check if the database exists
 if not os.path.exists("books.db"):
     print("Database not found. Initializing database...")
-    init_db()
+    init_database()  # Modifica qui: init_db -> init_database
 
 app = FastAPI()
 
