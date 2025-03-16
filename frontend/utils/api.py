@@ -222,3 +222,17 @@ def is_admin():
     if 'user_info' in st.session_state and st.session_state.user_info:
         return st.session_state.user_info.get('role') == 'admin'
     return False
+
+def refresh_missing_metadata():
+    """Richiede l'aggiornamento dei metadati per libri con informazioni mancanti"""
+    headers = get_auth_header()
+    try:
+        response = requests.post(f"{API_URL}/books/refresh-metadata", headers=headers)
+        
+        if response.status_code == 200:
+            return {"success": True, "data": response.json()}
+        else:
+            error_detail = response.json().get("detail", "Errore sconosciuto")
+            return {"success": False, "error": error_detail}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

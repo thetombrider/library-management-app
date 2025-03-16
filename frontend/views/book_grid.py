@@ -8,7 +8,34 @@ from components.book_card import render_book_card
 BOOKS_PER_ROW = 4
 
 def show_book_grid():
-    """Mostra la griglia dei libri dell'utente"""
+    """Mostra la griglia dei libri"""
+    
+    # Mostra i risultati dell'aggiornamento dei metadati se presenti
+    if 'metadata_update_result' in st.session_state:
+        with st.expander("Dettagli aggiornamento metadati", expanded=True):
+            result = st.session_state.metadata_update_result
+            
+            st.markdown(f"### Risultato aggiornamento metadati")
+            st.markdown(f"- **Totale libri elaborati:** {result['total']}")
+            st.markdown(f"- **Libri aggiornati:** {result['updated']}")
+            st.markdown(f"- **Libri non aggiornati:** {result['failed']}")
+            
+            if result['updated'] > 0:
+                st.markdown("#### Libri aggiornati")
+                for book in result['updated_books']:
+                    st.markdown(f"- **{book['title']}** (ID: {book['id']}, ISBN: {book['isbn']})")
+                    st.markdown(f"  - Campi aggiornati: {', '.join(book['updated_fields'])}")
+            
+            if result['failed'] > 0:
+                st.markdown("#### Libri non aggiornati")
+                for book in result['failed_books']:
+                    st.markdown(f"- **{book['title']}** (ID: {book['id']}, ISBN: {book['isbn']})")
+                    st.markdown(f"  - Motivo: {book['reason']}")
+            
+            if st.button("Chiudi", key="close_metadata_details"):
+                del st.session_state.metadata_update_result
+                st.rerun()
+    
     st.subheader("La mia libreria")
     
     current_user_id = get_current_user_id()

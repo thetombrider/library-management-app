@@ -50,28 +50,52 @@ with st.sidebar:
             st.session_state.view = 'add_book'
             st.rerun()
         
-        # Sezione Utenti (solo per admin)
-        if is_admin():
-            st.subheader("Amministrazione")
-            if st.sidebar.button("👥 Gestione Utenti", use_container_width=True):
-                st.session_state.view = 'manage_users'
-                st.rerun()
+        # Bottone per aggiornamento metadati libri
+        if st.sidebar.button("🔄 Aggiorna Metadati Libri", use_container_width=True):
+            from utils.api import refresh_missing_metadata
             
-            # Sezione Esportazione
-            if st.sidebar.button("📊 Esporta Dati (CSV)", use_container_width=True):
-                # Genera il file ZIP con i CSV
-                zip_data = export_all_data()
+            with st.sidebar.spinner("Aggiornamento in corso..."):
+                result = refresh_missing_metadata()
                 
-                # Crea un link per il download
-                st.sidebar.download_button(
-                    label="📥 Scarica dati (ZIP)",
-                    data=zip_data,
-                    file_name="biblioteca_export.zip",
-                    mime="application/zip",
-                    use_container_width=True
-                )
-                
-                st.sidebar.success("File di esportazione generato con successo!")
+                if result["success"]:
+                    data = result["data"]
+                    st.sidebar.success(f"Aggiornamento completato: {data['updated']} libri aggiornati, {data['failed']} non aggiornati")
+                    
+                    # Aggiungi pulsante per visualizzare dettagli
+                    if st.sidebar.button("Vedi dettagli", key="show_metadata_details"):
+                        st.session_state.metadata_update_result = data
+                        st.session_state.view = 'grid'  # Resta nella vista grid ma mostrerà i dettagli
+                        invalidate_caches()
+                        st.rerun()
+                else:
+                    st.sidebar.error(f"Errore: {result['error']}")
+        
+        # Gestione utenti - spostato qui per renderlo visibile a tutti
+        st.subheader("Gestione")
+        if st.sidebar.button("👥 Gestione Utenti", use_container_width=True):
+            st.session_state.view = 'manage_users'
+            st.rerun()
+        
+        # Sposta qui la sezione esportazione per renderla accessibile a tutti
+        if st.sidebar.button("📊 Esporta Dati (CSV)", use_container_width=True):
+            # Genera il file ZIP con i CSV
+            zip_data = export_all_data()
+            
+            # Crea un link per il download
+            st.sidebar.download_button(
+                label="📥 Scarica dati (ZIP)",
+                data=zip_data,
+                file_name="biblioteca_export.zip",
+                mime="application/zip",
+                use_container_width=True
+            )
+            
+            st.sidebar.success("File di esportazione generato con successo!")
+        
+        # Il resto della sezione admin solo per amministratori
+        if is_admin():
+            # Lascia vuoto o aggiungi altre funzionalità solo per admin
+            pass
         
         # Sezione Account
         st.subheader("Account")
@@ -124,11 +148,8 @@ elif st.session_state.view == 'create_loan':
 elif st.session_state.view == 'edit_book':
     show_edit_book_page()
 elif st.session_state.view == 'manage_users':
-    # Verifica se l'utente è admin
-    if is_admin():
-        show_manage_users_page()
-    else:
-        st.error("Non hai i permessi per accedere a questa pagina")
+    show_manage_users_page()
+
 
 # Carica stili CSS e scripts
 load_css()

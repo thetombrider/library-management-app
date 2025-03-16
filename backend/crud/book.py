@@ -120,3 +120,120 @@ def delete_book(db: Session, book_id: int):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}"
         )
+
+def refresh_missing_book_metadata(db: Session):
+    """
+    Cerca libri con informazioni mancanti e tenta di recuperarle nuovamente dalle API esterne.
+    Ritorna un report dei libri aggiornati e quelli che restano incompleti.
+    """
+    # Cerca libri con titolo mancante o autore sconosciuto
+    missing_info_books = db.query(Book).filter(
+        (Book.title == "Titolo mancante") | 
+        (Book.author == "Autore sconosciuto")
+    ).all()
+    
+    if not missing_info_books:
+        return {"status": "success", "message": "Nessun libro con informazioni mancanti trovato", "updated": 0, "failed": 0}
+    
+    # Contatori per il report
+    total_books = len(missing_info_books)
+    updated_books = 0
+    failed_books = 0
+    updated_book_details = []
+    failed_book_details = []
+    
+    # Prova a recuperare informazioni per ogni libro
+    for book in missing_info_books:
+        if not book.isbn:
+            # Se non c'è ISBN, non possiamo recuperare nulla
+            failed_books += 1
+            failed_book_details.append({
+                "id": book.id,
+                "isbn": None,
+                "title": book.title,
+                "reason": "ISBN mancante"
+            })
+            continue
+        
+        # Tenta di recuperare i metadati usando entrambe le API
+        metadata = fetch_book_metadata(book.isbn)
+        
+        if metadata and (metadata.get('title') or metadata.get('author')):
+            # Aggiorna solo i campi mancanti
+            updated_fields = []
+            
+            if book.title == "Titolo mancante" and metadata.get('title'):
+                book.title = metadata.get('title')
+                updated_fields.append("title")
+                
+            if book.author == "Autore sconosciuto" and metadata.get('author'):
+                book.author = metadata.get('author')
+                updated_fields.append("author")
+                
+            # Aggiorna altri campi utili se disponibili
+            if not book.description and metadata.get('description'):
+                book.description = metadata.get('description')
+                updated_fields.append("description")
+                
+            if not book.publisher and metadata.get('publisher'):
+                book.publisher = metadata.get('publisher')
+                updated_fields.append("publisher")
+                
+            if not book.publish_year and metadata.get('publish_year'):
+                book.publish_year = metadata.get('publish_year')
+                updated_fields.append("publish_year")
+                
+            # Aggiorna la copertina solo se era mancante
+            if not book.cover_image and metadata.get('cover_image'):
+                book.cover_image = metadata.get('cover_image')
+                updated_fields.append("cover_image")
+            
+            # Se abbiamo effettuato aggiornamenti
+            if updated_fields:
+                updated_books += 1
+                updated_book_details.append({
+                    "id": book.id,
+                    "isbn": book.isbn,
+                    "title": book.title,
+                    "updated_fields": updated_fields
+                })
+            else:
+                failed_books += 1
+                failed_book_details.append({
+                    "id": book.id,
+                    "isbn": book.isbn,
+                    "title": book.title,
+                    "reason": "Nessun nuovo dato disponibile"
+                })
+        else:
+            # I metadati non sono stati trovati
+            failed_books += 1
+            failed_book_details.append({
+                "id": book.id,
+                "isbn": book.isbn,
+                "title": book.title,
+                "reason": "Metadati non trovati"
+            })
+    
+    # Esegui il commit delle modifiche
+    try:
+        db.commit()
+        
+        # Prepara il report finale
+        return {
+            "status": "success",
+            "message": f"Elaborazione completata: {updated_books} libri aggiornati, {failed_books} non aggiornati",
+            "total": total_books,
+            "updated": updated_books,
+            "failed": failed_books,
+            "updated_books": updated_book_details,
+            "failed_books": failed_book_details
+        }
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": f"Errore durante l'aggiornamento: {str(e)}",
+            "updated": 0,
+            "failed": total_books
+        }

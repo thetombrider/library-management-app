@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from backend import crud, models, schemas
 from backend.database import get_db
@@ -118,3 +118,18 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
 @router.put("/{book_id}", response_model=schemas.Book)
 def update_book(book_id: int, book: schemas.BookUpdate, db: Session = Depends(get_db)):
     return crud.book.update_book(db=db, book_id=book_id, book=book)
+
+@router.post("/refresh-metadata", status_code=200)
+def refresh_book_metadata(
+    current_user: models.User = Depends(crud.user.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint per aggiornare i metadati dei libri con informazioni mancanti.
+    Accessibile a tutti gli utenti autenticati.
+    """
+    # Il controllo del ruolo admin è stato rimosso
+    
+    # Esegui l'aggiornamento dei metadati
+    result = crud.book.refresh_missing_book_metadata(db)
+    return result
