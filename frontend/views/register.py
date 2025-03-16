@@ -90,9 +90,3 @@ def show_register_page():
                 except Exception as e:
                     st.error(f"Errore di connessione: {str(e)}")
     
-    # Link per il login
-    st.markdown("---")
-    st.write("Hai già un account?")
-    if st.button("Accedi"):
-        set_state('login')
-        st.rerun()
